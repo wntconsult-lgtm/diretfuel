@@ -71,3 +71,5 @@ Esses são os comandos existentes. A importação verifica a integridade dos arq
 A cópia dos dados será uma etapa separada e validada: gerar um backup consistente, exportar as tabelas, transferir documentos e comparar contagens, vínculos, hashes e totais financeiros. A virada requer sincronizar as últimas alterações e definir qual ambiente receberá as gravações.
 
 Detalhes: [docs/MIGRACAO.txt](docs/MIGRACAO.txt).
+
+O modelo CSV de importação foi incluído apenas com os cabeçalhos; as linhas de exemplo com dados identificáveis foram removidas.

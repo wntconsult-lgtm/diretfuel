@@ -1,0 +1,43 @@
+DIRECTFUEL VIXPAR — PACOTE INICIAL DE MIGRAÇÃO
+Preparação: 05/10/2026
+
+O QUE ESTÁ PRONTO
+A pasta codigo/ contém o código versionado extraído do DirectFuel existente, incluindo telas, regras, APIs, estrutura do banco e testes existentes. O manifesto identifica o commit e os arquivos por SHA-256.
+
+Este pacote é uma cópia do código. A migração ainda não foi implantada. Os dados operacionais, PDFs, XMLs e backups mantidos no banco e no armazenamento da produção serão transferidos em uma etapa própria; não estão neste ZIP.
+
+O QUE SIGNIFICA A OCUPAÇÃO DE 88%
+No código consultado, o indicador divide o tamanho da base operacional descompactada por um limite interno de 8.000.000 bytes. O próprio painel informa que isso não representa a capacidade total da nuvem.
+
+A gravação também verifica um limite seguro de 1.900.000 bytes para o conteúdo compactado armazenado em uma única linha do banco D1. A consulta feita nesta preparação não mediu o consumo atual de produção. Os 88% foram informados pelo usuário.
+
+Copiar o código para outro local manterá essas duas regras. A solução deve adaptar a persistência, distribuindo os registros por tabelas, com controle de versões e conflitos entre usuários. Apenas aumentar a constante de 8 MB não trata a arquitetura de armazenamento.
+
+DESTINO PROPOSTO
+1. GitHub: repositório privado para código, histórico e publicação automatizada.
+2. Hospedagem com servidor: execução da aplicação e das APIs em HTTPS.
+3. PostgreSQL: dados operacionais, seguindo a decisão anterior do projeto.
+4. Armazenamento de objetos: PDFs, XMLs e backups, com acesso controlado.
+
+O GitHub Pages hospeda páginas estáticas. O DirectFuel atual depende de APIs, banco, documentos e autenticação, portanto esse serviço sozinho não executará a aplicação completa.
+Referência oficial: https://docs.github.com/pt/pages/getting-started-with-github-pages/what-is-github-pages
+
+ADAPTAÇÕES NECESSÁRIAS
+- Substituir as chamadas env.DB e o SQL específico do D1 por acesso ao PostgreSQL; manter a proteção contra conflitos de gravação e os bloqueios de upload/exclusão.
+- Distribuir a base hoje concentrada em app_state por coleções/tabelas, preservando IDs, vínculos e regras. Esse desenho precisa manter as relações entre abastecimentos, acordos, medições, NFs e lançamentos SAP.
+- Substituir env.BUCKET por armazenamento de documentos na infraestrutura escolhida, preservando tipos, chaves e metadados.
+- Configurar autenticação real na nova hospedagem. O login atual lê cabeçalhos confiáveis injetados pela plataforma ChatGPT Sites. Esses cabeçalhos não devem ser aceitos diretamente de visitantes na nova hospedagem.
+- Adaptar o build e a execução do projeto, que atualmente dependem do ambiente Cloudflare Workers e da integração com Sites. O código ainda não foi convertido nem validado para um servidor Node/PostgreSQL.
+- Mover a configuração de proprietário para configuração protegida e preservar perfis, permissões e logs dos usuários existentes.
+
+SEQUÊNCIA PARA MIGRAR
+1. Repositório privado criado e acesso liberado: https://github.com/wntconsult-lgtm/diretfuel. A cópia do código está sendo registrada nessa origem; validar o commit e os arquivos antes de seguir para a implantação.
+2. Definir e disponibilizar os serviços de hospedagem, PostgreSQL, documentos e login. Não colocar senhas ou chaves dentro do repositório.
+3. Implementar e validar as adaptações numa cópia, enquanto o site atual segue em operação.
+4. Gerar e validar um backup antes da transferência. Exportar todas as 13 tabelas confirmadas, além de documentos e backups do R2, preservando vínculos e metadados. Comparar contagens, tamanhos, hashes e totais financeiros.
+5. Validar login e permissões, cadastros, cargas Gekon/Ticketlog, medições, anexos, relatórios, RC/rateio, MIRO, lançamentos SAP e restauração de backup.
+6. Definir uma janela curta para suspender gravações e sincronizar as últimas alterações antes da virada. A equipe continua no ambiente atual até essa etapa; edições paralelas nas duas bases exigem sincronização própria.
+7. Manter o site atual como contingência. Nenhuma exclusão ou liberação de espaço deve ocorrer antes de verificar a transferência e a recuperação dos dados. A ocupação atual não diminui apenas com a criação do repositório ou de uma cópia externa.
+
+SITUAÇÃO DESTA ENTREGA
+Código extraído e pacote conferido. Repositório GitHub privado criado e acesso liberado para a importação. Nova hospedagem e transferência de dados pendentes. Produção, endereço atual e dados não foram alterados.

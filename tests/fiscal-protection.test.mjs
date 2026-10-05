@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import ts from 'typescript';
+import {readFileSync} from 'node:fs';
+const source=ts.transpileModule(readFileSync(new URL('../lib/directfuel-fiscal-protection.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;
+const {protectFiscalMappings}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const previous={acordos:[{id:'a',numero:'AC1',fiscalProductMappings:[{id:'m',codigoProdutoFiscal:'000056',ativo:true}]}]};
+test('omitted mappings survive unrelated agreement updates with leading zeroes',()=>{const next={acordos:[{id:'a',inicio:'2026-09-01'}]};assert.equal(protectFiscalMappings(previous,next),null);assert.deepEqual(next.acordos[0].fiscalProductMappings,previous.acordos[0].fiscalProductMappings);});
+test('empty or partial replacement cannot silently remove a saved mapping',()=>{for(const mappings of [[],null,[{id:'other',codigoProdutoFiscal:'56'}]])assert.match(protectFiscalMappings(previous,{acordos:[{id:'a',fiscalProductMappings:mappings}]}),/000056/);});
+test('explicit deactivation preserves the link and is allowed',()=>{const next=structuredClone(previous);next.acordos[0].fiscalProductMappings[0].ativo=false;assert.equal(protectFiscalMappings(previous,next),null);});

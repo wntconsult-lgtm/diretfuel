@@ -1,0 +1,62 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1788568875732,
+      "tag": "0000_silent_dexter_bennett",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788620124569,
+      "tag": "0001_premium_gargoyle",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788709124351,
+      "tag": "0002_sharp_marrow",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788745752489,
+      "tag": "0003_cuddly_komodo",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1788832967270,
+      "tag": "0004_sturdy_nick_fury",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789081234346,
+      "tag": "0005_ordinary_lethal_legion",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789085651694,
+      "tag": "0006_lyrical_mathemanic",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1790181569987,
+      "tag": "0007_perpetual_the_stranger",
+      "breakpoints": true
+    }
+  ]
+}

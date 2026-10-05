@@ -1,0 +1,16 @@
+{
+  "projeto": "DirectFuel Vixpar",
+  "origem": "https://directfuel-vixpar.espa-o-de-tr-3403.chatgpt.site",
+  "commit_origem": "cb3800d88cc99d84f72cfeabca3769a7016cf66c",
+  "versao_sites_consultada": 215,
+  "destino": "https://github.com/wntconsult-lgtm/diretfuel",
+  "tipo": "Importação do código, sem dados operacionais",
+  "arquivo_build_omitido": "directfuel-site.tar.gz",
+  "arquivos_adaptados_para_documentacao": [
+    "README.md",
+    ".gitignore",
+    "public/modelo_importacao_abastecimentos_directfuel.csv"
+  ],
+  "implementacao_funcional_alterada": false,
+  "modelo_importacao_csv": "Somente cabeçalhos; removidas linhas de exemplo com dados identificáveis."
+}

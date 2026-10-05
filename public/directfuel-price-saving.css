@@ -1,0 +1,8 @@
+.price-summary.saving-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+.saving-card{border-width:2px}
+.saving-card.realized{border-color:#9bd5c2;background:linear-gradient(145deg,#f4fcf9,#e8f7f1)}
+.saving-card.potential{border-color:#a9c8e8;background:linear-gradient(145deg,#f5f9fd,#eaf2fb)}
+.saving-card.realized .value{color:#087552}
+.saving-card.potential .value{color:#175f9c}
+@media(max-width:1000px){.price-summary.saving-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.price-summary.saving-summary{grid-template-columns:1fr}}
