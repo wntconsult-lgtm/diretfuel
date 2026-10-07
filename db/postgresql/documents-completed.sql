@@ -1,3 +1,5 @@
+-- Migração remota directfuel_completed_document_safety.
+ALTER TABLE directfuel.documents ADD COLUMN cleanup_pending boolean NOT NULL DEFAULT false;
 -- Referência SQL final: documentos privados e exclusão de arquivos concluídos.
 CREATE OR REPLACE FUNCTION public.directfuel_document(p_user_id uuid,p_email text,p_action text,p_document_id text DEFAULT NULL,p_metadata jsonb DEFAULT NULL)
 RETURNS jsonb LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $$
