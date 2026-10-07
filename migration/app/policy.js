@@ -1,11 +1,15 @@
 (() => {
- const unavailable=new Set(['analysis_geo','users']);
+ const unavailable=new Set(['users']);
  const apply=()=>{
   document.querySelectorAll('[data-route]').forEach(el=>{if(unavailable.has(el.dataset.route))el.remove();});
   for(const id of ['btnReset','clearAllData','fileImport','previewDocumentRetention','previewRetention','executeDocumentRetention','analyzeDocumentRetention','saveDocumentRetention','deleteCompletedDocuments'])document.getElementById(id)?.remove();
   // A legacy JSON user record does not provision a Supabase account; account management remains in the portal.
   if(route==='config'){
    document.querySelectorAll('#view h2').forEach(h=>{if(/Usuários e acesso|Dados de teste/.test(h.textContent)){const panel=h.closest('.panel');if(panel){panel.textContent='A gestão de contas e a limpeza completa ainda não estão disponíveis nesta cópia.';}}});
+  }
+  if(route==='analysis_geo'){
+   if(!document.getElementById('migrationGeoNotice')){const notice=document.createElement('p');notice.id='migrationGeoNotice';notice.className='note';notice.textContent='Mapa, filtros, exportações e revisão de vínculos disponíveis. Rotas e busca automática de coordenadas aguardam um serviço compatível. Informe latitude e longitude no cadastro ou na carga Ticketlog.';document.getElementById('view').prepend(notice);}
+   document.querySelectorAll('#geoDetailSameRoad,#geoGeocodeAll,#geoGeocodeDirectFuel,#geoCalculatePending,#geoRetryRouteErrors,#gaGeocode,.geoGeocodeTicketlog').forEach(el=>{el.disabled=true;el.title='Aguardando serviço compatível.';});
   }
   const badge=document.getElementById('storageUsageBadge');if(badge){const text=badge.textContent.replace('Base:','Envio:').replace('limite de gravação','limite de sincronização');if(text!==badge.textContent)badge.textContent=text;}
   document.querySelectorAll('a[href^="/signout-with-chatgpt"]').forEach(a=>{a.href='../';a.setAttribute('data-migration-signout','');});

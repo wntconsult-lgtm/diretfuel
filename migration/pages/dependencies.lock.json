@@ -5,6 +5,12 @@
       "version": "2.117.2",
       "url": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js",
       "purpose": "Supabase Auth; bundle served at an exact npm package version"
+    },
+    "leaflet": {
+      "version": "1.9.4",
+      "url": "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js",
+      "css": "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css",
+      "purpose": "Mapa com coordenadas dos cadastros, sem tokens da aplicação"
     }
   },
   "buildDependencies": []

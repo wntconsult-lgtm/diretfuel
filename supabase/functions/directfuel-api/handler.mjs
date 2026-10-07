@@ -1,6 +1,8 @@
+import {handleCompleted,documentManifest} from './completed-documents.mjs';
+import { readGeo, reviewGeo } from './geo.mjs';
 import { handleVolume } from './volume.mjs';
 import { readTicketlog, mutateTicketlog } from './ticketlog.mjs';
-import { handleDocument } from './documents.mjs';
+import { handleDocument, removeDocumentObject } from './documents.mjs';
 import { APP_VERSION } from './core/directfuel-version.mjs';
 import { applyStateDelta } from './core/directfuel-storage.mjs';
 import { protectFiscalMappings } from './core/directfuel-fiscal-protection.mjs';
@@ -9,10 +11,10 @@ import { accountingReport } from './core/directfuel-accounting-report.mjs';
 
 export function analyzeChanges(previous,next){
  const changes=analyzeBusinessChanges(previous,next);
- for(const collection of ['volumeParameters','volumeParameterHistory','volumeReviews','ticketlogStations','ticketlogFuelings','ticketlogBatches']){
+ for(const collection of ['geoParams','stationReviews','volumeParameters','volumeParameterHistory','volumeReviews','ticketlogStations','ticketlogFuelings','ticketlogBatches']){
   if(JSON.stringify(previous[collection])===JSON.stringify(next[collection]))continue;
-  if(collection==='volumeParameters'){changes.push({collection,inserted:previous[collection]?0:1,updated:previous[collection]?1:0,deleted:[]});continue;}
-  const before=new Map((previous[collection]||[]).map(r=>[r.id,r])),after=new Map((next[collection]||[]).map(r=>[r.id,r]));
+  if(['geoParams','volumeParameters'].includes(collection)){changes.push({collection,inserted:previous[collection]?0:1,updated:previous[collection]?1:0,deleted:[]});continue;}
+  const before=new Map((previous[collection]||[]).map(r=>[r.id||r.stationCode,r])),after=new Map((next[collection]||[]).map(r=>[r.id||r.stationCode,r]));
   changes.push({collection,inserted:[...after.keys()].filter(id=>!before.has(id)).length,updated:[...after].filter(([id,r])=>before.has(id)&&JSON.stringify(before.get(id))!==JSON.stringify(r)).length,deleted:[...before].filter(([id])=>!after.has(id)).map(([,r])=>r)});
  }
  return changes;
@@ -61,7 +63,7 @@ export function prepareState(previous, payload, access, preserveRestoredNumbers 
   if (next.users.some(user => user.perfil === 'Master' && String(user.email || '').toLowerCase() !== access.user.email)) throw problem('O perfil Master é exclusivo do proprietário.', 403);
   const protectedError = protectFiscalMappings(previous, next);
   if (protectedError) throw problem(protectedError, 409);
-  next.stationReviews = previous.stationReviews || [];
+  if(!preserveRestoredNumbers) next.stationReviews = previous.stationReviews || [];
   // These collections are written only by their dedicated server endpoints.
   if (!preserveRestoredNumbers) for (const key of ['importedAuditHistory','volumeParameters','volumeParameterHistory','volumeReviews','ticketlogStations','ticketlogFuelings','ticketlogBatches']) {
     if (previous[key] !== undefined) next[key] = previous[key]; else delete next[key];
@@ -134,7 +136,11 @@ export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
         const result = await rpc('directfuel_state_read',{p_known_version:known===null?null:Number(known)});
         return reply({...result,applicationVersion:APP_VERSION,...(result.unchanged?{}:{storage:usage(result.state)})});
       }
-      if (route.startsWith('documents/')) return await handleDocument({request,route,parsed,document,fetchImpl,url,serviceKey,headers,reply});
+      if(route==='documents/completed')return reply(await handleCompleted({method:request.method,parsed,body:request.method==='POST'?await readJson(request):{},readState,document,removeObject:path=>removeDocumentObject({fetchImpl,url,serviceKey,path})}));
+      if(route==='documents/manifest'&&request.method==='GET'){
+        const current=await readState(),docs=await document('list');return reply({version:current.version,files:documentManifest(current.state||{},docs),cleanupPending:docs.filter(d=>d.removed_at&&d.cleanup_pending).map(d=>({id:d.measurement_id,type:d.content_type.includes('xml')?'xml':'pdf'}))});
+      }
+      if (route.startsWith('documents/')) return await handleDocument({request,route,parsed,document,fetchImpl,url,serviceKey,headers,reply,readState});
       if (route==='import' && request.method==='GET') {
         const current = await readState();
         return reply({canImport:canImport(current.state || {}),version:current.version});
@@ -192,9 +198,9 @@ export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
           collections:Object.entries(state).map(([name,value])=>({name,records:Array.isArray(value)?value.length:null,bytes:new TextEncoder().encode(JSON.stringify(value)).byteLength})),measuredAt:new Date().toISOString()});
       }
       if (['volume-audit','ticketlog','geo-analysis'].includes(route) && ['GET','POST'].includes(request.method)) {
-        if(route==='geo-analysis'&&request.method!=='POST')throw problem('Análise geográfica ainda em adaptação.',501);
+        
         const body=request.method==='POST'?await readJson(request):{},current=await readState(),state=current.state||{};
-        if(route==='geo-analysis'&&body.action!=='reprocess-links')throw problem('Análise geográfica ainda em adaptação.',501);
+        
         const persist=async(next,destructive=false)=>{
           delete next.audit;
           const invalid=validateState(next);if(invalid)throw problem(invalid);
@@ -202,6 +208,8 @@ export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
           const changes=analyzeChanges(state,next);
           return await write(current,next,changes,destructive);
         };
+        if(route==='geo-analysis'&&request.method==='GET')return reply({...readGeo(state,parsed),capabilities:{routing:false,geocoding:false}});
+        if(route==='geo-analysis'&&body.action!=='reprocess-links')return reply(await reviewGeo({state,body,email:current.user.email,persist}));
         if(route==='volume-audit')return reply(await handleVolume({state,body,method:request.method,email:current.user.email,persist}));
         if(request.method==='GET')return reply(readTicketlog(state,parsed.searchParams));
         return reply(await mutateTicketlog({state,body,email:current.user.email,persist}));

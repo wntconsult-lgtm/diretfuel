@@ -2,10 +2,10 @@ name: DirectFuel - acesso de testes
 
 on:
   push:
-    branches: [main, migration/supabase-foundation, migration/operational-core, migration/app-integration, migration/volume-ticketlog]
-    paths: ['migration/pages/**', 'scripts/build-pages-preview.mjs', 'scripts/build-pages-app.mjs', 'migration/app/**', 'tests/pages-app.test.mjs', 'public/**', 'lib/directfuel-version.ts', 'tests/pages-preview.test.mjs', 'supabase/functions/directfuel-preview/**', 'supabase/functions/directfuel-api/**', 'scripts/build-supabase-core.mjs', 'tests/supabase-core.test.mjs', 'tests/supabase-operations.test.mjs', '.github/workflows/pages-preview.yml']
+    branches: [main, migration/supabase-foundation, migration/operational-core, migration/app-integration, migration/volume-ticketlog, migration/geography-documents]
+    paths: ['migration/pages/**', 'scripts/build-pages-preview.mjs', 'scripts/build-pages-app.mjs', 'migration/app/**', 'tests/pages-app.test.mjs', 'public/**', 'lib/directfuel-version.ts', 'lib/directfuel-geo-core.ts', 'lib/directfuel-completed-documents.ts', 'tests/pages-preview.test.mjs', 'supabase/functions/directfuel-preview/**', 'supabase/functions/directfuel-api/**', 'scripts/build-supabase-core.mjs', 'tests/supabase-core.test.mjs', 'tests/supabase-operations.test.mjs', 'tests/supabase-geography-documents.test.mjs', '.github/workflows/pages-preview.yml']
   pull_request:
-    paths: ['migration/pages/**', 'scripts/build-pages-preview.mjs', 'scripts/build-pages-app.mjs', 'migration/app/**', 'tests/pages-app.test.mjs', 'public/**', 'lib/directfuel-version.ts', 'tests/pages-preview.test.mjs', 'supabase/functions/directfuel-preview/**', 'supabase/functions/directfuel-api/**', 'scripts/build-supabase-core.mjs', 'tests/supabase-core.test.mjs', 'tests/supabase-operations.test.mjs', '.github/workflows/pages-preview.yml']
+    paths: ['migration/pages/**', 'scripts/build-pages-preview.mjs', 'scripts/build-pages-app.mjs', 'migration/app/**', 'tests/pages-app.test.mjs', 'public/**', 'lib/directfuel-version.ts', 'lib/directfuel-geo-core.ts', 'lib/directfuel-completed-documents.ts', 'tests/pages-preview.test.mjs', 'supabase/functions/directfuel-preview/**', 'supabase/functions/directfuel-api/**', 'scripts/build-supabase-core.mjs', 'tests/supabase-core.test.mjs', 'tests/supabase-operations.test.mjs', 'tests/supabase-geography-documents.test.mjs', '.github/workflows/pages-preview.yml']
   workflow_dispatch:
     inputs:
       publish:
@@ -26,7 +26,7 @@ jobs:
           node-version: '24'
       - run: node scripts/build-supabase-core.mjs
       - run: node scripts/build-pages-preview.mjs
-      - run: node --test tests/pages-preview.test.mjs tests/pages-app.test.mjs tests/supabase-core.test.mjs tests/supabase-operations.test.mjs
+      - run: node --test tests/pages-preview.test.mjs tests/pages-app.test.mjs tests/supabase-core.test.mjs tests/supabase-operations.test.mjs tests/supabase-geography-documents.test.mjs
       - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:
           path: dist/pages-preview

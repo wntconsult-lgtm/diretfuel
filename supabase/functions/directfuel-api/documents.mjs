@@ -1,11 +1,22 @@
+import {completedDocumentCandidates} from './core/directfuel-completed-documents.mjs';
 export const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024;
 const fail = (message,status=400) => Object.assign(new Error(message),{status});
-export async function handleDocument({request,route,parsed,document,fetchImpl,url,serviceKey,headers,reply}) {
+export async function removeDocumentObject({fetchImpl,url,serviceKey,path}){
+ const result=await fetchImpl(`${url}/storage/v1/object/directfuel-documents`,{method:'DELETE',headers:{apikey:serviceKey,authorization:`Bearer ${serviceKey}`,'content-type':'application/json'},body:JSON.stringify({prefixes:[path]}),signal:AbortSignal.timeout(45000)});
+ if(!result.ok&&result.status!==404)throw fail('O arquivo ficou pendente de limpeza no armazenamento.',503);
+}
+export async function handleDocument({request,route,parsed,document,fetchImpl,url,serviceKey,headers,reply,readState}) {
   const id = route.slice('documents/'.length);
   if (!/^[A-Za-z0-9_-]{1,100}$/.test(id)) throw fail('Documento inválido.');
   const inputType = request.headers.get('content-type') || '';
   const type = parsed.searchParams.get('type')==='xml' || inputType.includes('xml') ? 'xml' : 'pdf';
   const documentId = `${id}:${type}`;
+  let migrationMetadata={};
+  if(request.method==='POST'&&parsed.searchParams.get('migration')==='1'){
+    const current=await readState();
+    if(!completedDocumentCandidates(current.state||{}).some(f=>f.id===id&&f.type===type))throw fail('Vincule o arquivo a uma referência existente da base.');
+    migrationMetadata={onlyMissing:true,version:current.version};
+  }
   // Authorize before any storage operation, including upload or bucket provisioning.
   await document('context');
   const storageHeaders = {apikey:serviceKey,authorization:`Bearer ${serviceKey}`};
@@ -28,6 +39,7 @@ export async function handleDocument({request,route,parsed,document,fetchImpl,ur
     if (id.startsWith('NF_LAYOUT_')) throw fail('Os PDFs de referência dos layouts são preservados.',409);
     const meta = await document('remove',documentId);
     await removeObject(meta.object_path);
+    await document('cleanup_complete',documentId,{path:meta.object_path});
     return reply({ok:true});
   }
   if (request.method!=='POST') throw fail('Método não permitido.',405);
@@ -53,7 +65,7 @@ export async function handleDocument({request,route,parsed,document,fetchImpl,ur
   const uploaded=await storage(objectUrl(path),{method:'POST',headers:{'content-type':mime,'x-upsert':'false'},body:bytes});
   if (!uploaded.ok) throw fail('Não foi possível enviar o documento.',503);
   let saved;
-  try { saved=await document('put',documentId,{path,filename:`nota-fiscal-${id}.${type}`,type:mime,bytes:size,sha256}); }
+  try { saved=await document('put',documentId,{path,filename:`nota-fiscal-${id}.${type}`,type:mime,bytes:size,sha256,...migrationMetadata}); }
   catch (error) { try {await removeObject(path);} catch {} throw error; }
   // Each revision uses an immutable path, so cleanup cannot delete a concurrently uploaded replacement.
   let cleanupPending=false;
