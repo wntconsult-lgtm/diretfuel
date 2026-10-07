@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self'; connect-src https://plafdeklnzrymswxjnhd.supabase.co; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>DirectFuel Vixpar · Cópia de testes</title>
+  <link rel="icon" href="./favicon.svg">
+  <link rel="stylesheet" href="./preview.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+  <script type="module" src="./preview.js"></script>
+</head>
+<body>
+  <header class="topbar"><img src="./logo-vixpar.png" alt="Vixpar"><span class="tag">Cópia de testes</span></header>
+  <main>
+    <section class="intro"><span class="eyebrow">DIRECTFUEL VIXPAR</span><h1>Um novo ambiente.<br>O mesmo DirectFuel.</h1><p>Estamos preparando a cópia na nuvem. O sistema atual continua disponível para o trabalho do dia a dia.</p><a class="current" href="https://directfuel-vixpar.espa-o-de-tr-3403.chatgpt.site" target="_blank" rel="noopener noreferrer">Abrir o DirectFuel atual ↗</a></section>
+    <section id="login" class="panel" aria-labelledby="login-title">
+      <h2 id="login-title">Entrar na cópia de testes</h2><p class="muted">Use o e-mail e a senha cadastrados para este ambiente.</p>
+      <form id="login-form"><label for="email">E-mail</label><input id="email" name="email" type="email" autocomplete="username" required>
+      <label for="password">Senha</label><input id="password" name="password" type="password" autocomplete="current-password" required>
+      <button id="submit" type="submit">Entrar</button></form>
+      <p id="message" role="status" aria-live="polite">Preparando acesso…</p><p class="note">Nesta etapa, o acesso está restrito ao responsável pela migração.</p>
+    </section>
+    <section id="status" class="panel wide" hidden aria-labelledby="status-title">
+      <div class="status-head"><div><span class="eyebrow">CONEXÃO VERIFICADA</span><h2 id="status-title">Ambiente de testes</h2><p id="identity" class="muted"></p></div><button id="logout" class="secondary" type="button">Sair</button></div>
+      <div class="cards"><article><span>Banco de dados</span><strong>São Paulo</strong><small>PostgreSQL · Supabase</small></article><article><span>Registros operacionais</span><strong id="records">—</strong><small id="revision">Aguardando consulta</small></article><article><span>Documentos</span><strong id="documents">—</strong><small>Armazenamento separado</small></article><article><span>Backups validados</span><strong id="backups">—</strong><small>Da cópia de testes</small></article></div>
+      <div class="notice"><strong>Integração em preparação</strong><p>Este acesso confirma o login e a conexão com o novo banco. Os módulos de operação, a importação dos dados e o envio de documentos ainda serão integrados.</p></div>
+      <p id="checked" class="note"></p><button id="refresh" class="secondary" type="button">Atualizar situação</button><p id="status-message" role="status" aria-live="polite"></p>
+    </section>
+    <noscript>Ative o JavaScript para entrar.</noscript>
+  </main><footer>DirectFuel Vixpar · Ambiente separado do sistema em uso</footer>
+</body>
+</html>

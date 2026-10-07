@@ -1,0 +1,11 @@
+{
+  "format": 1,
+  "browserBundles": {
+    "@supabase/supabase-js": {
+      "version": "2.117.2",
+      "url": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js",
+      "purpose": "Supabase Auth; bundle served at an exact npm package version"
+    }
+  },
+  "buildDependencies": []
+}
