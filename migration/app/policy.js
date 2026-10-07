@@ -2,7 +2,7 @@
  const unavailable=new Set(['users']);
  const apply=()=>{
   document.querySelectorAll('[data-route]').forEach(el=>{if(unavailable.has(el.dataset.route))el.remove();});
-  for(const id of ['btnReset','clearAllData','fileImport','previewDocumentRetention','previewRetention','executeDocumentRetention','analyzeDocumentRetention','saveDocumentRetention','deleteCompletedDocuments'])document.getElementById(id)?.remove();
+  for(const id of ['btnReset','clearAllData','fileImport','previewDocumentRetention','previewRetention','deleteCompletedDocuments'])document.getElementById(id)?.remove();
   // A legacy JSON user record does not provision a Supabase account; account management remains in the portal.
   if(route==='config'){
    document.querySelectorAll('#view h2').forEach(h=>{if(/Usuários e acesso|Dados de teste/.test(h.textContent)){const panel=h.closest('.panel');if(panel){panel.textContent='A gestão de contas e a limpeza completa ainda não estão disponíveis nesta cópia.';}}});

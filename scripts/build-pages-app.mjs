@@ -21,6 +21,11 @@ for(const name of modules){
   for(const key of Object.keys(seed))if(Array.isArray(seed[key]))seed[key]=[];
   text=text.slice(0,from)+'const seed='+JSON.stringify(seed)+';'+text.slice(to);
  }
+ if(name==='storage-ui'){
+  text=text.replace('Um backup será criado antes da operação.','Um backup da base será criado e validado antes da operação. A exclusão de PDFs/XMLs é definitiva: o backup JSON não recupera esses arquivos.');
+  text=text.replace('alert(`Concluído: ${done.notes} NF(s) tratadas e ${done.removedDocuments} documento(s) removidos.`);',"alert(`Concluído: ${done.notes} NF(s) tratadas e ${done.removedDocuments} documento(s) removidos.${done.cleanupPending ? ' '+done.cleanupPending+' limpeza(s) física(s) pendente(s); retome em Documentos.' : ''}`);");
+  text=text.replace('atendem à política salva. Economia estimada:',"atendem à política salva. ${preview.missingDocuments ? esc(preview.missingDocuments)+' referência(s) sem arquivo migrado serão preservadas. ' : ''}Economia estimada:");
+ }
  if(name==='geo'){
   text=text.replace('function scheduleAutomaticRoutes() {','function scheduleAutomaticRoutes() { if(!geo.data?.capabilities?.routing)return;');
   for(const declaration of ['async function openSameRoadAnalysis(stationCode) {','async function geocodeForm() {','async function geocodeTicketlogStation(button) {','async function geocodeAllTicketlogStations() {','async function geocodeAllDirectFuelStations() {','async function calculateRoutes(retryErrors = false) {']){
