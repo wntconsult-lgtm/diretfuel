@@ -44,7 +44,7 @@ test('every bootstrap dependency is present and valid; unsupported modules are n
  const boot=await readFile(new URL('directfuel-bootstrap.js',root),'utf8');
  const modules=JSON.parse(boot.match(/for\(const name of (\[[^\n]+\])/)[1]);
  for(const name of modules){const file=`directfuel-${name}.js`;assert.ok(files.includes(file),file);new vm.Script(await readFile(new URL(file,root),'utf8'),{filename:file});}
- assert.equal(modules.at(-1),'migration-policy');for(const name of ['volume','geo','ticketlog','completed-documents'])assert.ok(!modules.includes(name));
+ assert.ok(modules.includes('ticketlog'));assert.ok(modules.includes('volume'));assert.equal(modules.at(-1),'migration-policy');for(const name of ['geo','completed-documents'])assert.ok(!modules.includes(name));
  assert.doesNotMatch(boot,/[`'"]\/directfuel-|unpkg/);
  const html=await readFile(new URL('index.html',root),'utf8');
  for(const match of html.matchAll(/(?:src|href)="\.\/([^"?#]+)"/g))assert.ok(files.includes(match[1]),match[1]);

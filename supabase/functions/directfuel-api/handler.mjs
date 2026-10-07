@@ -1,9 +1,22 @@
+import { handleVolume } from './volume.mjs';
+import { readTicketlog, mutateTicketlog } from './ticketlog.mjs';
 import { handleDocument } from './documents.mjs';
 import { APP_VERSION } from './core/directfuel-version.mjs';
 import { applyStateDelta } from './core/directfuel-storage.mjs';
 import { protectFiscalMappings } from './core/directfuel-fiscal-protection.mjs';
-import { analyzeChanges, assignAutomaticAgreementNumbers, assignAutomaticStationCodes, authorizeChanges, validateBusinessRules, validateState } from './core/directfuel-security.mjs';
+import { analyzeChanges as analyzeBusinessChanges, assignAutomaticAgreementNumbers, assignAutomaticStationCodes, authorizeChanges, validateBusinessRules, validateState } from './core/directfuel-security.mjs';
 import { accountingReport } from './core/directfuel-accounting-report.mjs';
+
+export function analyzeChanges(previous,next){
+ const changes=analyzeBusinessChanges(previous,next);
+ for(const collection of ['volumeParameters','volumeParameterHistory','volumeReviews','ticketlogStations','ticketlogFuelings','ticketlogBatches']){
+  if(JSON.stringify(previous[collection])===JSON.stringify(next[collection]))continue;
+  if(collection==='volumeParameters'){changes.push({collection,inserted:previous[collection]?0:1,updated:previous[collection]?1:0,deleted:[]});continue;}
+  const before=new Map((previous[collection]||[]).map(r=>[r.id,r])),after=new Map((next[collection]||[]).map(r=>[r.id,r]));
+  changes.push({collection,inserted:[...after.keys()].filter(id=>!before.has(id)).length,updated:[...after].filter(([id,r])=>before.has(id)&&JSON.stringify(before.get(id))!==JSON.stringify(r)).length,deleted:[...before].filter(([id])=>!after.has(id)).map(([,r])=>r)});
+ }
+ return changes;
+}
 
 export const TRANSPORT_LIMIT = 32_000_000;
 const list = value => Array.isArray(value) ? value : [];
@@ -50,7 +63,7 @@ export function prepareState(previous, payload, access, preserveRestoredNumbers 
   if (protectedError) throw problem(protectedError, 409);
   next.stationReviews = previous.stationReviews || [];
   // These collections are written only by their dedicated server endpoints.
-  for (const key of ['importedAuditHistory','volumeParameters','volumeParameterHistory','volumeReviews','ticketlogStations','ticketlogFuelings','ticketlogBatches']) {
+  if (!preserveRestoredNumbers) for (const key of ['importedAuditHistory','volumeParameters','volumeParameterHistory','volumeReviews','ticketlogStations','ticketlogFuelings','ticketlogBatches']) {
     if (previous[key] !== undefined) next[key] = previous[key]; else delete next[key];
   }
   assignAutomaticStationCodes(previous, next);
@@ -177,6 +190,21 @@ export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
         return reply({limitBytes:TRANSPORT_LIMIT,state:{bytes:usage(state).bytes,version:current.version},documents,
           backups:{count:security.backups.length,bytes:security.backups.reduce((s,b)=>s+Number(b.size_bytes),0)},
           collections:Object.entries(state).map(([name,value])=>({name,records:Array.isArray(value)?value.length:null,bytes:new TextEncoder().encode(JSON.stringify(value)).byteLength})),measuredAt:new Date().toISOString()});
+      }
+      if (['volume-audit','ticketlog','geo-analysis'].includes(route) && ['GET','POST'].includes(request.method)) {
+        if(route==='geo-analysis'&&request.method!=='POST')throw problem('Análise geográfica ainda em adaptação.',501);
+        const body=request.method==='POST'?await readJson(request):{},current=await readState(),state=current.state||{};
+        if(route==='geo-analysis'&&body.action!=='reprocess-links')throw problem('Análise geográfica ainda em adaptação.',501);
+        const persist=async(next,destructive=false)=>{
+          delete next.audit;
+          const invalid=validateState(next);if(invalid)throw problem(invalid);
+          if(usage(next).bytes>TRANSPORT_LIMIT)throw problem('Envio acima do limite de sincronização.',413);
+          const changes=analyzeChanges(state,next);
+          return await write(current,next,changes,destructive);
+        };
+        if(route==='volume-audit')return reply(await handleVolume({state,body,method:request.method,email:current.user.email,persist}));
+        if(request.method==='GET')return reply(readTicketlog(state,parsed.searchParams));
+        return reply(await mutateTicketlog({state,body,email:current.user.email,persist}));
       }
       if (route==='accounting-report' && request.method==='POST') {
         const body = await readJson(request), current = await readState();
