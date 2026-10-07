@@ -10,8 +10,8 @@ for(const name of ['index.html','migration.css','app-start.mjs']){
  await writeFile(new URL(name,output),content);
 }
 for(const name of ['config.mjs','gateway.mjs'])await copyFile(new URL(`migration/pages/${name}`,root),new URL(name,output));
-for(const name of ['logo-vixpar.png','favicon.svg','directfuel-styles.css','directfuel-dashboard-v2.css','directfuel-price-saving.css','gekon-xlsx.js'])await copyFile(new URL(`public/${name}`,root),new URL(name,output));
-const modules=['state-delta','import-rules','app','online','enhancements','reports-calculator','rc-sap','enterprise','enterprise-v2','enterprise-v3','security','dashboard-financial','dashboard-v2','access-control','access-log','danfe-parser','layout-engine','reconciliation','invoices','layouts','sap-return','sap-return-ui','accounting-report','storage-ui'];
+for(const name of ['logo-vixpar.png','favicon.svg','directfuel-styles.css','directfuel-dashboard-v2.css','directfuel-price-saving.css','directfuel-geo.css','gekon-xlsx.js'])await copyFile(new URL(`public/${name}`,root),new URL(name,output));
+const modules=['state-delta','import-rules','app','online','enhancements','reports-calculator','rc-sap','enterprise','enterprise-v2','enterprise-v3','security','dashboard-financial','dashboard-v2','access-control','access-log','danfe-parser','layout-engine','reconciliation','invoices','layouts','sap-return','sap-return-ui','accounting-report','ticketlog','volume','storage-ui'];
 for(const name of modules){
  let text=await readFile(new URL(`public/directfuel-${name}.js`,root),'utf8');
  if(name==='app'){
@@ -29,7 +29,6 @@ for(const name of modules){
   text=text.slice(0,start)+text.slice(start,end).replaceAll('pending = true;','// Local identity enrichment does not trigger an automatic write.')+text.slice(end);
   text=text.replaceAll('Entre com a conta ChatGPT autorizada para este site.','Entre com a conta cadastrada para esta cópia de testes.').replaceAll('O acesso ao site exige uma conta ChatGPT autorizada.','O acesso à cópia de testes exige a conta vinculada no Supabase.');
  }
- if(name==='dashboard-v2')text=text.replace('const panel=$("#dashboardAudit");if(!panel)return;', `const panel=$("#dashboardAudit");if(!panel)return;panel.innerHTML='<h2>Auditoria de capacidade</h2><p class="note">Este módulo ainda não está disponível na cópia de testes.</p>';return;`);
  text=text.replaceAll('/gekon-xlsx.js','./gekon-xlsx.js').replaceAll('/logo-vixpar.png','./logo-vixpar.png');
  await writeFile(new URL(`directfuel-${name}.js`,output),text);
 }
