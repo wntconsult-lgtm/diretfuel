@@ -26,7 +26,16 @@
     <section id="status" class="panel wide" hidden aria-labelledby="status-title">
       <div class="status-head"><div><span class="eyebrow">CONEXÃO VERIFICADA</span><h2 id="status-title">Ambiente de testes</h2><p id="identity" class="muted"></p></div><button id="logout" class="secondary" type="button">Sair</button></div>
       <div class="cards"><article><span>Banco de dados</span><strong>São Paulo</strong><small>PostgreSQL · Supabase</small></article><article><span>Registros operacionais</span><strong id="records">—</strong><small id="revision">Aguardando consulta</small></article><article><span>Documentos</span><strong id="documents">—</strong><small>Armazenamento separado</small></article><article><span>Backups validados</span><strong id="backups">—</strong><small>Da cópia de testes</small></article></div>
-      <div class="notice"><strong>Integração em preparação</strong><p>Este acesso confirma o login e a conexão com o novo banco. Os módulos de operação, a importação dos dados e o envio de documentos ainda serão integrados.</p></div>
+      <div class="notice"><strong>Integração em preparação</strong><p>Este acesso confirma o login e a conexão com o novo banco. A importação inicial já está disponível. Os módulos de operação continuam em adaptação; use o sistema atual para o trabalho diário.</p></div>
+      <section id="migration" aria-labelledby="migration-title">
+        <h2 id="migration-title">Importar o backup geral</h2>
+        <p class="muted">No DirectFuel atual, exporte o backup geral em JSON. Selecione esse arquivo abaixo para copiar os registros para a base de testes. Os arquivos PDF e XML serão migrados separadamente.</p>
+        <label for="backup-file">Arquivo de backup JSON</label><input id="backup-file" type="file" accept=".json,application/json" disabled>
+        <p id="backup-summary" class="note"></p>
+        <label class="confirmation"><input id="backup-confirm" type="checkbox" disabled> Confirmo a importação para a cópia de testes.</label>
+        <button id="import-backup" type="button" disabled>Importar registros</button>
+        <p id="import-message" role="status" aria-live="polite">Verificando disponibilidade…</p>
+      </section>
       <p id="checked" class="note"></p><button id="refresh" class="secondary" type="button">Atualizar situação</button><p id="status-message" role="status" aria-live="polite"></p>
     </section>
     <noscript>Ative o JavaScript para entrar.</noscript>

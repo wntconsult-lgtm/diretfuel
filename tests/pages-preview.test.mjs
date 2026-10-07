@@ -89,7 +89,7 @@ test('missing sessions never trigger a network request', async () => {
 test('the deploy artifact contains only the access page, never source, credentials or business data', async () => {
   const root = new URL('../dist/pages-preview/', import.meta.url);
   const files = await readdir(root);
-  assert.deepEqual(files.sort(), ['auth.mjs','config.mjs','favicon.svg','index.html','logo-vixpar.png','preview.css','preview.js']);
+  assert.deepEqual(files.sort(), ['auth.mjs','config.mjs','favicon.svg','import.mjs','index.html','logo-vixpar.png','preview.css','preview.js']);
   const config = await readFile(new URL('config.mjs', root), 'utf8');
   assert.match(config, /sb_publishable_/); assert.doesNotMatch(config, /sb_secret_|eyJ|service_role/);
   const html = await readFile(new URL('index.html', root), 'utf8');
