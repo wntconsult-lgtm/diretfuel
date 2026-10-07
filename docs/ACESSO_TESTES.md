@@ -7,7 +7,7 @@ Esta etapa permite validar login e comunicação com o novo banco. A página nã
 - migration/pages: tela em português, login Supabase Auth e situação do banco.
 - supabase/functions/directfuel-preview: API de consulta protegida com verify_jwt habilitado. Valida a sessão online em Auth /user e consulta somente a função restrita public.directfuel_preview_access.
 - db/postgresql/preview-access.sql: referência da função aplicada pela migração remota directfuel_preview_access. SECURITY INVOKER, sem EXECUTE para PUBLIC, anon ou authenticated; somente service_role.
-- .github/workflows/pages-preview.yml: gera e testa os arquivos estáticos. Publicação requer execução manual com publish habilitado na branch main; commits e pull requests executam somente verificação.
+- .github/workflows/pages-preview.yml: gera e testa os arquivos estáticos. Alterações aprovadas na main geram e publicam a página de testes; branches de trabalho e pull requests executam somente verificação. Há também uma execução manual com publish habilitado.
 
 O SDK de autenticação no navegador usa versão exata 2.117.2, registrada em dependencies.lock.json. O backend e a geração dos arquivos usam APIs nativas, sem instalar pacotes. Nenhuma credencial de serviço entra nos arquivos estáticos. A chave sb_publishable é pública; o banco permanece inacessível aos papéis de cliente.
 
@@ -19,7 +19,7 @@ O projeto começou sem usuários de Auth. A conta utilizada para administrar o S
 2. Abrir Autenticação → Usuários.
 3. Selecionar Adicionar usuário → Criar novo usuário.
 4. Usar o e-mail do responsável pela migração e definir uma senha particular. Confirmar automaticamente o e-mail da conta criada, quando a opção estiver disponível. Não enviar a senha em mensagens ou salvá-la no repositório.
-5. Depois da criação, vincular o UUID real de Auth à linha correspondente em directfuel.members e ativá-la. A linha inicial do responsável está inativa e sem vínculo; login sem esse vínculo continua recusado.
+5. Depois da criação, vincular o UUID real de Auth à linha correspondente em directfuel.members e ativá-la. O responsável foi cadastrado em Auth, teve seu e-mail confirmado e está vinculado como membro Master ativo. Login de UUID não vinculado continua recusado.
 
 A cópia de testes aceita somente o membro Master responsável pela migração. Os demais perfis e regras de unidade dependem da adaptação das APIs operacionais. Nunca autorizar por user_metadata.
 
@@ -32,15 +32,15 @@ node scripts/build-pages-preview.mjs
 node --test tests/pages-preview.test.mjs
 ```
 
-Os testes verificam autenticação no servidor, restrição de origem, preflight, bloqueio de gravações, contas anônimas ou sem confirmação, permissões recusadas, falhas externas sem exposição de informações, transporte do JWT do usuário e conteúdo do artefato estático. As respostas HTTP dos testes são simuladas; não substituem o teste com uma conta real após seu cadastro.
+Os testes verificam autenticação no servidor, restrição de origem, preflight, bloqueio de gravações, contas anônimas ou sem confirmação, permissões recusadas, falhas externas sem exposição de informações, transporte do JWT do usuário e conteúdo do artefato estático. As respostas HTTP dos testes são simuladas; não substituem o teste real de login na página publicada. O usuário real já foi cadastrado e vinculado.
 
-O teste SQL confirma que um UUID não vinculado recebe NULL, sem revelar contagens. As tabelas privadas continuam com RLS habilitado e sem políticas de cliente. Avisos informativos de RLS sem políticas e índices ainda não usados são esperados nesse banco novo:
+O teste SQL confirmou o retorno autorizado para o UUID real do Master e a recusa (NULL) de um UUID diferente. As tabelas privadas continuam com RLS habilitado e sem políticas de cliente. Avisos informativos de RLS sem políticas e índices ainda não usados são esperados nesse banco novo:
 - https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy
 - https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index
 
 ## Publicação e pendências
 
-Após validar o usuário real e revisar a mudança, incorporar a proposta à main. Em Ações → DirectFuel - acesso de testes → Executar fluxo de trabalho, selecionar main e habilitar Publicar. O destino esperado é https://wntconsult-lgtm.github.io/diretfuel/; não considerar esse endereço publicado antes de uma implantação bem-sucedida.
+A incorporação da proposta à main inicia o build, os testes e a publicação da página de acesso. Para repetir manualmente, em Ações → DirectFuel - acesso de testes → Executar fluxo de trabalho, selecionar main e habilitar Publicar. O destino esperado é https://wntconsult-lgtm.github.io/diretfuel/; não considerar esse endereço publicado antes de uma implantação bem-sucedida.
 
 A API de consulta de testes pode ser implantada independentemente da página, sem disponibilizar dados sem autenticação. O acesso ao backend usa Authorization com o JWT do usuário e apikey com a chave pública; uma chave pública não deve ser enviada como Bearer.
 
