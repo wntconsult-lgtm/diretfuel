@@ -16,3 +16,4 @@ for (const name of await readdir(source)) {
 }
 for (const name of ['logo-vixpar.png', 'favicon.svg']) await copyFile(path.join(root, 'public', name), path.join(output, name));
 console.log('Página de acesso de testes gerada em dist/pages-preview. Nenhum dado operacional foi incluído.');
+await import('./build-pages-app.mjs');
