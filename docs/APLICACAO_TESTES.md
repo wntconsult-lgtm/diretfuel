@@ -55,4 +55,14 @@ A seção **Excluir arquivos de NFs concluídas no SAP** analisa os arquivos pre
 
 48 testes automatizados passaram. Dez verificações adicionais cobrem mapa, filtros, ausência de oportunidades fictícias, revisões concorrentes, referências compartilhadas, prévia de arquivos, exclusão protegida, migração sem sobrescrita, retomada de limpeza e isolamento de credenciais. Uma transação remota com metadados artificiais confirmou proteção de revisão e hash, bloqueio de sobrescrita e acesso RPC restrito ao backend; foi revertida, preservando 5.212 registros, revisão 2, um backup e zero documentos físicos na nova base. A validação visual com login e o envio dos arquivos reais continuam pendentes.
 
-Gestão de contas da equipe, retenção com compactação da base e limpeza completa ainda estão indisponíveis. O acesso continua exclusivo do Master vinculado; usuários do JSON não provisionam contas Supabase.
+Gestão de contas da equipe e limpeza completa ainda estão indisponíveis. Retenção avançada com prévia e execução manual está disponível na seção a seguir. O acesso continua exclusivo do Master vinculado; usuários do JSON não provisionam contas Supabase.
+
+## Retenção avançada da cópia
+
+Em **Configurações → Consumo e capacidade → Política de retenção**, o Master pode salvar prazo e seleção de PDF, XML e detalhes fiscais, analisar a prévia e confirmar a execução. A elegibilidade exige NF aprovada com chave válida e todos os vínculos SAP ativos confirmados, com pedido e data válida anteriores ao limite. O prazo considera o último lançamento ativo, não apenas o primeiro. Leituras e prévias não limpam dados; não há tarefa agendada.
+
+Arquivos compartilhados com notas mais recentes, referências adicionais e layouts são preservados. Referências de PDFs/XMLs ainda não migrados permanecem na base. A compactação remove somente os campos volumosos de leitura, mantendo totais, chaves, IVA, materiais, campos adicionais, abastecimentos e vínculos SAP. Políticas desmarcadas mantêm os respectivos conteúdos.
+
+A RPC privada `directfuel_retention` grava um backup validado, altera a revisão e marca os arquivos selecionados na mesma transação. Uma revisão ou hash desatualizados abortam a operação inteira. A remoção física ocorre depois da transação, somente em caminhos imutáveis e com limpeza imediata limitada a três arquivos; os demais ficam no registro de pendências e podem ser concluídos em **Documentos → Migrar PDFs e XMLs antigos → Conferir arquivos faltantes → Concluir limpezas pendentes**. Não se anuncia remoção física que ainda não ocorreu. O backup JSON preserva a base, mas não recupera arquivos físicos apagados.
+
+55 testes automatizados passaram, incluindo sete cenários de retenção: preservação de dados, múltiplos vínculos SAP, arquivos compartilhados, referências faltantes, políticas, confirmação e conflito, falhas transacionais/físicas e limite de limpeza imediata. A verificação remota usa somente metadados artificiais com rollback e nunca executa retenção nos dados reais.

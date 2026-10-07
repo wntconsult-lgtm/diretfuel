@@ -1,3 +1,4 @@
+import {handleRetention} from './retention.mjs';
 import {handleCompleted,documentManifest} from './completed-documents.mjs';
 import { readGeo, reviewGeo } from './geo.mjs';
 import { handleVolume } from './volume.mjs';
@@ -108,8 +109,8 @@ export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
       const user = await auth.json();
       if (!user.id || !user.email || !user.email_confirmed_at || user.is_anonymous || user.role!=='authenticated') throw problem('Confirme seu e-mail para acessar.',403);
       const identity = { p_user_id:user.id,p_email:user.email.toLowerCase() };
-      async function rpc(name,args = {}) {
-        const result = await fetchImpl(`${url}/rest/v1/rpc/${name}`,{method:'POST',headers:{apikey:serviceKey,authorization:`Bearer ${serviceKey}`,'content-type':'application/json'},body:JSON.stringify({...identity,...args}),signal:AbortSignal.timeout(45000)});
+      async function rpc(name,args = {},timeoutMs=45000) {
+        const result = await fetchImpl(`${url}/rest/v1/rpc/${name}`,{method:'POST',headers:{apikey:serviceKey,authorization:`Bearer ${serviceKey}`,'content-type':'application/json'},body:JSON.stringify({...identity,...args}),signal:AbortSignal.timeout(timeoutMs)});
         const data = await result.json();
         if (!result.ok) {
           const status = /^PT[0-9]{3}$/.test(data.code || '') ? Number(data.code.slice(2)) : 503;
@@ -127,7 +128,7 @@ export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
         p_events:changes.map(c=>({collection:c.collection,inserted:c.inserted,updated:c.updated,deleted:c.deleted,
           summary:`${c.inserted} inclusão(ões), ${c.updated} alteração(ões), ${c.deleted.length} exclusão(ões)`})),
       });
-      const document = (action,id=null,metadata=null) => rpc('directfuel_document',{p_action:action,p_document_id:id,p_metadata:metadata});
+      const document = (action,id=null,metadata=null,timeoutMs=45000) => rpc('directfuel_document',{p_action:action,p_document_id:id,p_metadata:metadata},timeoutMs);
       if (route==='version' && request.method==='GET') { await document('context'); return reply({applicationVersion:APP_VERSION}); }
       if (route==='state' && request.method==='GET') {
         const known = parsed.searchParams.get('version');
@@ -190,6 +191,13 @@ export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
         const access = {isOwner:true,user:{email:current.user.email},directFuelUser:{perfil:'Master',permissoes:['*'],acoes:['*']}};
         const {next,changes} = prepareState(previous,{state:proposed},access,true);
         return reply(await write(current,next,changes,true));
+      }
+      if(route==='storage/retention'){
+        const current=await readState(),documents=await document('list'),body=request.method==='POST'?await readJson(request):{};
+        return reply(await handleRetention({method:request.method,body,current,documents,limitBytes:TRANSPORT_LIMIT,
+          execute:plan=>rpc('directfuel_retention',{p_version:current.version,p_state:plan.state,p_events:analyzeChanges(current.state||{},plan.state).map(c=>({...c,summary:'Retenção fiscal com backup validado'})),p_documents:plan.documents.map(d=>({id:d.id,sha256:d.sha256}))}),
+          cleanup:async doc=>{await removeDocumentObject({fetchImpl,url,serviceKey,path:doc.object_path,timeoutMs:10000});await document('cleanup_complete',doc.id,{path:doc.object_path},10000);}
+        }));
       }
       if (route==='storage' && request.method==='GET') {
         const current = await readState(), security = await rpc('directfuel_security'), documents = await document('stats'), state = current.state || {};

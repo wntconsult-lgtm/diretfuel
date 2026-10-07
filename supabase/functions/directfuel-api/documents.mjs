@@ -1,8 +1,8 @@
 import {completedDocumentCandidates} from './core/directfuel-completed-documents.mjs';
 export const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024;
 const fail = (message,status=400) => Object.assign(new Error(message),{status});
-export async function removeDocumentObject({fetchImpl,url,serviceKey,path}){
- const result=await fetchImpl(`${url}/storage/v1/object/directfuel-documents`,{method:'DELETE',headers:{apikey:serviceKey,authorization:`Bearer ${serviceKey}`,'content-type':'application/json'},body:JSON.stringify({prefixes:[path]}),signal:AbortSignal.timeout(45000)});
+export async function removeDocumentObject({fetchImpl,url,serviceKey,path,timeoutMs=45000}){
+ const result=await fetchImpl(`${url}/storage/v1/object/directfuel-documents`,{method:'DELETE',headers:{apikey:serviceKey,authorization:`Bearer ${serviceKey}`,'content-type':'application/json'},body:JSON.stringify({prefixes:[path]}),signal:AbortSignal.timeout(timeoutMs)});
  if(!result.ok&&result.status!==404)throw fail('O arquivo ficou pendente de limpeza no armazenamento.',503);
 }
 export async function handleDocument({request,route,parsed,document,fetchImpl,url,serviceKey,headers,reply,readState}) {

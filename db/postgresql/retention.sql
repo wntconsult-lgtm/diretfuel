@@ -49,3 +49,21 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.directfuel_document(uuid,text,text,text,jsonb) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.directfuel_document(uuid,text,text,text,jsonb) TO service_role;
+
+-- Migração remota directfuel_atomic_retention. Somente o backend chama esta RPC.
+CREATE FUNCTION public.directfuel_retention(p_user_id uuid,p_email text,p_version bigint,p_state jsonb,p_events jsonb,p_documents jsonb)
+RETURNS jsonb LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $$
+DECLARE result jsonb; entry jsonb; doc jsonb; removed jsonb:='[]'::jsonb;
+BEGIN
+ PERFORM directfuel.require_owner(p_user_id,p_email);
+ IF jsonb_typeof(p_documents) IS DISTINCT FROM 'array' OR jsonb_array_length(p_documents)>1000 THEN RAISE SQLSTATE 'PT400' USING MESSAGE='Lista de arquivos inválida.';END IF;
+ -- The existing writer creates and validates a backup before changing anything.
+ result:=public.directfuel_state_write(p_user_id,p_email,p_version,p_state,p_events,true);
+ FOR entry IN SELECT value FROM jsonb_array_elements(p_documents) ORDER BY value->>'id' LOOP
+  doc:=public.directfuel_document(p_user_id,p_email,'remove_retention',entry->>'id',jsonb_build_object('sha256',entry->>'sha256'));
+  removed:=removed||jsonb_build_array(jsonb_build_object('id',doc->>'id','object_path',doc->>'object_path','byte_size',doc->'byte_size'));
+ END LOOP;
+ RETURN result||jsonb_build_object('documents',removed);
+END $$;
+REVOKE ALL ON FUNCTION public.directfuel_retention(uuid,text,bigint,jsonb,jsonb,jsonb) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.directfuel_retention(uuid,text,bigint,jsonb,jsonb,jsonb) TO service_role;
