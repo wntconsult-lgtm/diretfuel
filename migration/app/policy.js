@@ -1,11 +1,11 @@
 (() => {
- const unavailable=new Set(['users']);
+ const unavailable=new Set([]);
  const apply=()=>{
   document.querySelectorAll('[data-route]').forEach(el=>{if(unavailable.has(el.dataset.route))el.remove();});
   for(const id of ['btnReset','clearAllData','fileImport','previewDocumentRetention','previewRetention','deleteCompletedDocuments'])document.getElementById(id)?.remove();
-  // A legacy JSON user record does not provision a Supabase account; account management remains in the portal.
+  // A legacy user record requires a separate, individual Supabase binding in the Users menu.
   if(route==='config'){
-   document.querySelectorAll('#view h2').forEach(h=>{if(/Usuários e acesso|Dados de teste/.test(h.textContent)){const panel=h.closest('.panel');if(panel){panel.textContent='A gestão de contas e a limpeza completa ainda não estão disponíveis nesta cópia.';}}});
+   document.querySelectorAll('#view h2').forEach(h=>{if(/Usuários e acesso|Dados de teste/.test(h.textContent)){const panel=h.closest('.panel');if(panel){panel.textContent='Gerencie os acessos à cópia da nuvem no menu Usuários. A limpeza completa permanece indisponível.';}}});
   }
   if(route==='analysis_geo'){
    if(!document.getElementById('migrationGeoNotice')){const notice=document.createElement('p');notice.id='migrationGeoNotice';notice.className='note';notice.textContent='Mapa, filtros, exportações e revisão de vínculos disponíveis. Rotas e busca automática de coordenadas aguardam um serviço compatível. Informe latitude e longitude no cadastro ou na carga Ticketlog.';document.getElementById('view').prepend(notice);}
