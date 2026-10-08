@@ -21,12 +21,12 @@
       <form id="login-form"><label for="email">E-mail</label><input id="email" name="email" type="email" autocomplete="username" required>
       <label for="password">Senha</label><input id="password" name="password" type="password" autocomplete="current-password" required>
       <button id="submit" type="submit">Entrar</button></form>
-      <p id="message" role="status" aria-live="polite">Preparando acesso…</p><p class="note">Nesta etapa, o acesso está restrito ao responsável pela migração.</p>
+      <p id="message" role="status" aria-live="polite">Preparando acesso…</p><p class="note">Acesso liberado individualmente pelo proprietário. Cada integrante usa sua própria senha.</p>
     </section>
     <section id="status" class="panel wide" hidden aria-labelledby="status-title">
       <div class="status-head"><div><span class="eyebrow">CONEXÃO VERIFICADA</span><h2 id="status-title">Ambiente de testes</h2><p id="identity" class="muted"></p></div><button id="logout" class="secondary" type="button">Sair</button></div>
       <div class="cards"><article><span>Banco de dados</span><strong>São Paulo</strong><small>PostgreSQL · Supabase</small></article><article><span>Registros operacionais</span><strong id="records">—</strong><small id="revision">Aguardando consulta</small></article><article><span>Documentos</span><strong id="documents">—</strong><small>Armazenamento separado</small></article><article><span>Backups validados</span><strong id="backups">—</strong><small>Da cópia de testes</small></article></div>
-      <div class="notice"><strong>Integração em preparação</strong><p>Este acesso confirma o login e a conexão com o novo banco. A importação inicial já está disponível. A aplicação de testes já pode ser aberta abaixo. Use o sistema atual para o trabalho diário; Ticketlog, análise geográfica e auditoria de capacidade continuam em adaptação.</p></div>
+      <div class="notice"><strong>Integração em preparação</strong><p>A aplicação de testes já pode ser aberta abaixo. O histórico Ticketlog já foi copiado. Libere a equipe no menu Usuários e confira os PDF/XML faltantes no menu Documentos. Rotas automáticas aguardam um serviço compatível. Use o sistema atual para o trabalho diário até concluir a migração.</p></div>
       <p><a id="migrationAppLink" class="current" href="./app/">Abrir aplicação de testes →</a></p>
       <section id="migration" aria-labelledby="migration-title">
         <h2 id="migration-title">Importar o backup geral</h2>

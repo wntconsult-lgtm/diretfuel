@@ -18,7 +18,8 @@ function showStatus(data) {
   $('revision').textContent = `Dados v${data.revision || 0}`;
   $('checked').textContent = `Conexão verificada em ${new Date(data.checkedAt).toLocaleString('pt-BR')}.`;
   $('status-message').textContent = ''; $('login').hidden = true; $('status').hidden = false;
-  checkImport().catch(error=>{$('import-message').textContent=error.message;});
+  $('migration').hidden=!data.user.isOwner;
+  if(data.user.isOwner)checkImport().catch(error=>{$('import-message').textContent=error.message;});
 }
 async function checkImport() {
   if (importBusy) return;

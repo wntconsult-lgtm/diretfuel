@@ -1,0 +1,22 @@
+(() => {
+ const previousRender=render;
+ render=function(){const result=previousRender.apply(this,arguments);if(route==='users'&&window.DIRECTFUEL_IS_OWNER)void panel();return result;};
+ async function panel(){
+  if(document.getElementById('migrationTeam'))return;
+  const section=document.createElement('section');section.id='migrationTeam';section.className='panel';
+  section.innerHTML='<h2>Acesso à cópia na nuvem</h2><p>Confira o cadastro e as permissões abaixo antes de liberar cada pessoa. O link individual permite definir a senha; compartilhe-o somente com o usuário indicado. Nenhum e-mail será enviado automaticamente.</p><button class="btn secondary" data-refresh>Atualizar acessos</button><p data-status role="status"></p><div data-users></div><div data-link></div>';
+  document.getElementById('view').prepend(section);
+  const status=section.querySelector('[data-status]'),list=section.querySelector('[data-users]'),linkBox=section.querySelector('[data-link]');let loading=false,version;
+  async function call(method='GET',body){const response=await fetch('/api/team',{method,cache:'no-store',...(body?{headers:{'content-type':'application/json'},body:JSON.stringify(body)}:{})}),data=await response.json();if(!response.ok)throw Error(data.error||'Não foi possível consultar os acessos.');return data;}
+  async function load(){if(loading)return;loading=true;status.textContent='Consultando acessos…';try{const data=await call();version=data.version;list.replaceChildren();
+   for(const user of data.users){const row=document.createElement('div');row.className='toolbar';const text=document.createElement('p');text.textContent=`${user.name||user.email} · ${user.email} · ${user.profile} · ${user.released?'Liberado':'Não liberado'}${user.enabled?'':' · Cadastro inativo'}`;row.append(text);
+    const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Conferir permissões';const description=document.createElement('p');description.textContent=`Módulos: ${(user.permissions||[]).join(', ')||'Nenhum'}. Ações: ${(user.actions||[]).join(', ')||'Nenhuma'}.`;details.append(summary,description);row.append(details);
+    const button=document.createElement('button');button.className='btn primary';button.textContent=user.released?'Gerar novo link de senha':'Liberar e gerar link';button.disabled=!user.enabled;row.append(button);
+    button.onclick=async()=>{if(!confirm(`Liberar o acesso de ${user.email} com o perfil ${user.profile} e as permissões do cadastro? O link permite entrar na cópia de testes e definir a senha.`))return;button.disabled=true;status.textContent='Preparando acesso…';linkBox.replaceChildren();try{const result=await call('POST',{action:'activate',id:user.id,version,confirmation:'LIBERAR ACESSO'});const label=document.createElement('p');label.textContent=`Link individual para ${result.email}. Compartilhe somente com essa pessoa. O link expira conforme o prazo de autenticação e é de uso único.`;const input=document.createElement('input');input.type='text';input.readOnly=true;input.value=result.link;input.setAttribute('aria-label','Link individual de ativação');const copy=document.createElement('button');copy.className='btn secondary';copy.textContent='Copiar link';copy.onclick=async()=>{try{await navigator.clipboard.writeText(result.link);copy.textContent='Copiado';}catch{input.select();status.textContent='Selecione e copie o link.';}};linkBox.append(label,input,copy);status.textContent='Acesso liberado. Nenhum e-mail foi enviado.';await load();}catch(e){status.textContent=e.message;}finally{button.disabled=false;}};
+    if(user.released){const disable=document.createElement('button');disable.className='btn danger';disable.textContent='Desativar acesso';disable.onclick=async()=>{if(!confirm(`Desativar o acesso de ${user.email} à cópia de testes?`))return;disable.disabled=true;linkBox.replaceChildren();try{await call('POST',{action:'disable',id:user.id});await load();}catch(e){status.textContent=e.message;}finally{disable.disabled=false;}};row.append(disable);}
+    list.append(row);
+   }status.textContent=`${data.users.length} cadastro(s). Cadastros antigos precisam de liberação individual para entrar nesta cópia.`;
+  }catch(e){status.textContent=e.message;}finally{loading=false;}}
+  section.querySelector('[data-refresh]').onclick=()=>{linkBox.replaceChildren();void load();};await load();
+ }
+})();

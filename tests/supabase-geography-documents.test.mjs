@@ -53,7 +53,7 @@ test('geographic API reads require membership and disabled provider actions neve
  let denied=false,writes=0;const handler=createHandler({url:'https://synthetic.example.test',serviceKey:'synthetic-service',fetchImpl:async(url,options)=>{
   assert.ok(url.startsWith('https://synthetic.example.test/'));
   if(url.endsWith('/auth/v1/user'))return Response.json({id:'synthetic-owner',email:owner,email_confirmed_at:'2026-01-01',role:'authenticated'});
-  if(url.endsWith('/directfuel_state_read'))return denied?Response.json({code:'PT403',message:'Acesso não autorizado.'},{status:403}):Response.json({state:geoSeed,version:1,user:{email:owner}});
+  if(url.endsWith('/directfuel_state_read'))return denied?Response.json({code:'PT403',message:'Acesso não autorizado.'},{status:403}):Response.json({state:geoSeed,version:1,user:{email:owner,isOwner:true}});
   writes++;throw Error('Unexpected write');
  }});
  const request=(body)=>new Request('https://synthetic.example.test/functions/v1/directfuel-api/geo-analysis',{method:body?'POST':'GET',headers:{authorization:'Bearer synthetic-token',origin:'https://wntconsult-lgtm.github.io',...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});

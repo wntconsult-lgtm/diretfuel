@@ -43,16 +43,18 @@ for(const name of modules){
   text=text.slice(0,start)+text.slice(start,end).replaceAll('pending = true;','// Local identity enrichment does not trigger an automatic write.')+text.slice(end);
   text=text.replaceAll('Entre com a conta ChatGPT autorizada para este site.','Entre com a conta cadastrada para esta cópia de testes.').replaceAll('O acesso ao site exige uma conta ChatGPT autorizada.','O acesso à cópia de testes exige a conta vinculada no Supabase.');
  }
+ text=text.replaceAll('O acesso ao site exige login no ChatGPT e e-mail corporativo @vix.com.br.','O proprietário libera cada acesso à cópia da nuvem. Use o painel do menu Usuários.');
  text=text.replaceAll('/gekon-xlsx.js','./gekon-xlsx.js').replaceAll('/logo-vixpar.png','./logo-vixpar.png');
  await writeFile(new URL(`directfuel-${name}.js`,output),text);
 }
 await copyFile(new URL('migration/app/document-migration.js',root),new URL('directfuel-document-migration.js',output));
+await copyFile(new URL('migration/app/team-access.js',root),new URL('directfuel-team-access.js',output));
 await copyFile(new URL('migration/app/policy.js',root),new URL('directfuel-migration-policy.js',output));
 let bootstrap=await readFile(new URL('public/directfuel-bootstrap.js',root),'utf8');
 bootstrap=bootstrap.replace("https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js');
 const start=bootstrap.indexOf('    for(const name of [');const end=bootstrap.indexOf(') {',start);
 if(start<0||end<0)throw Error('Ordem dos módulos desconhecida.');
-bootstrap=bootstrap.slice(0,start)+`    for(const name of ${JSON.stringify([...modules,'document-migration','migration-policy'])}`+bootstrap.slice(end);
+bootstrap=bootstrap.slice(0,start)+`    for(const name of ${JSON.stringify([...modules,'document-migration','team-access','migration-policy'])}`+bootstrap.slice(end);
 bootstrap=bootstrap.replace("    await load('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js');","    try { await load('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js'); } catch { window.DIRECTFUEL_MAP_AVAILABLE=false; }");
 bootstrap=bootstrap.replace('`/directfuel-${name}', '`./directfuel-${name}');
 await writeFile(new URL('directfuel-bootstrap.js',output),bootstrap);

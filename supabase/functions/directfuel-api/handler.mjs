@@ -1,3 +1,5 @@
+import {handleTeam} from './team.mjs';
+import {accessOf,clientState,mergeClientPayload,requireOwner,requirePermission,authorizeExtraChanges} from './access.mjs';
 import {handleRetention} from './retention.mjs';
 import {handleCompleted,documentManifest} from './completed-documents.mjs';
 import { readGeo, reviewGeo } from './geo.mjs';
@@ -49,6 +51,7 @@ export function prepareImport(previous, candidate, ownerEmail) {
   return next;
 }
 export function prepareState(previous, payload, access, preserveRestoredNumbers = false) {
+  payload=mergeClientPayload(previous,payload,access);
   let next;
   if (payload.delta !== undefined) {
     const delta = { ...payload.delta }; delete delta.audit;
@@ -59,9 +62,9 @@ export function prepareState(previous, payload, access, preserveRestoredNumbers 
   }
   delete next.audit;
   for (const key of Object.keys(next)) if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(key) || ['constructor','prototype','__proto__'].includes(key)) throw problem('Nome de coleção inválido.');
-  next.users = list(next.users).map(user => String(user.email || '').toLowerCase() === access.user.email
+  next.users = list(next.users).map(user => access.isOwner && String(user.email || '').toLowerCase() === access.user.email
     ? { ...user, perfil: 'Master', permissoes: ['*'], acoes: ['*'], ativo: true } : user);
-  if (next.users.some(user => user.perfil === 'Master' && String(user.email || '').toLowerCase() !== access.user.email)) throw problem('O perfil Master é exclusivo do proprietário.', 403);
+  if (access.isOwner && next.users.some(user => user.perfil === 'Master' && String(user.email || '').toLowerCase() !== access.user.email)) throw problem('O perfil Master é exclusivo do proprietário.', 403);
   const protectedError = protectFiscalMappings(previous, next);
   if (protectedError) throw problem(protectedError, 409);
   if(!preserveRestoredNumbers) next.stationReviews = previous.stationReviews || [];
@@ -75,6 +78,7 @@ export function prepareState(previous, payload, access, preserveRestoredNumbers 
   const invalid = validateState(next); if (invalid) throw problem(invalid);
   const businessError = validateBusinessRules(previous, next); if (businessError) throw problem(businessError, 409);
   const changes = analyzeChanges(previous, next);
+  authorizeExtraChanges(access,changes);
   const denied = authorizeChanges(access, previous, next, changes); if (denied) throw problem(denied, 403);
   if (usage(next).bytes > TRANSPORT_LIMIT) throw problem('O envio excedeu o limite de sincronização. Contate o administrador.', 413);
   return { next, changes };
@@ -129,13 +133,15 @@ export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
           summary:`${c.inserted} inclusão(ões), ${c.updated} alteração(ões), ${c.deleted.length} exclusão(ões)`})),
       });
       const document = (action,id=null,metadata=null,timeoutMs=45000) => rpc('directfuel_document',{p_action:action,p_document_id:id,p_metadata:metadata},timeoutMs);
+      if(route==='team')return reply(await handleTeam({method:request.method,body:request.method==='POST'?await readJson(request):{},rpc,fetchImpl,url,serviceKey}));
       if (route==='version' && request.method==='GET') { await document('context'); return reply({applicationVersion:APP_VERSION}); }
       if (route==='state' && request.method==='GET') {
         const known = parsed.searchParams.get('version');
         if (known!==null && !/^\d+$/.test(known)) throw problem('Versão inválida.');
         if (known===null) await audit('Acesso autorizado','application',{route:'/',userAgent:(request.headers.get('user-agent')||'').slice(0,500)});
         const result = await rpc('directfuel_state_read',{p_known_version:known===null?null:Number(known)});
-        return reply({...result,applicationVersion:APP_VERSION,...(result.unchanged?{}:{storage:usage(result.state)})});
+        const visible=result.unchanged?undefined:clientState(result.state,accessOf(result.user));
+        return reply({...result,...(result.unchanged?{}:{state:visible}),applicationVersion:APP_VERSION,...(result.unchanged?{}:{storage:usage(visible)})});
       }
       if(route==='documents/completed')return reply(await handleCompleted({method:request.method,parsed,body:request.method==='POST'?await readJson(request):{},readState,document,removeObject:path=>removeDocumentObject({fetchImpl,url,serviceKey,path})}));
       if(route==='documents/manifest'&&request.method==='GET'){
@@ -143,11 +149,11 @@ export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
       }
       if (route.startsWith('documents/')) return await handleDocument({request,route,parsed,document,fetchImpl,url,serviceKey,headers,reply,readState});
       if (route==='import' && request.method==='GET') {
-        const current = await readState();
+        const current = await readState();requireOwner(current.user);
         return reply({canImport:canImport(current.state || {}),version:current.version});
       }
       if (route==='import' && request.method==='POST') {
-        const body = await readJson(request), current = await readState();
+        const body = await readJson(request), current = await readState();requireOwner(current.user);
         if (!Number.isSafeInteger(body.version) || body.version!==current.version) throw problem('A base foi alterada. Atualize a situação antes de importar.',409,{conflict:true});
         const candidate = body.backup?.state || body.backup;
         const next = prepareImport(current.state || {},candidate,current.user.email);
@@ -176,7 +182,7 @@ export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
         const body = await readJson(request);
         if (body.action==='create_backup') return reply(await rpc('directfuel_security',{p_action:'create_backup'}));
         if (!['restore_backup','restore_deleted'].includes(body.action)) throw problem('Ação inválida.');
-        const current = await readState(), previous = current.state || {}; let proposed;
+        const current = await readState();requireOwner(current.user);const previous = current.state || {}; let proposed;
         if (body.action==='restore_backup') {
           const backup = await rpc('directfuel_security',{p_action:'download',p_id:body.id});
           proposed = {...backup.state,users:previous.users};
@@ -193,7 +199,7 @@ export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
         return reply(await write(current,next,changes,true));
       }
       if(route==='storage/retention'){
-        const current=await readState(),documents=await document('list'),body=request.method==='POST'?await readJson(request):{};
+        const current=await readState();requireOwner(current.user);const documents=await document('list'),body=request.method==='POST'?await readJson(request):{};
         return reply(await handleRetention({method:request.method,body,current,documents,limitBytes:TRANSPORT_LIMIT,
           execute:plan=>rpc('directfuel_retention',{p_version:current.version,p_state:plan.state,p_events:analyzeChanges(current.state||{},plan.state).map(c=>({...c,summary:'Retenção fiscal com backup validado'})),p_documents:plan.documents.map(d=>({id:d.id,sha256:d.sha256}))}),
           cleanup:async doc=>{await removeDocumentObject({fetchImpl,url,serviceKey,path:doc.object_path,timeoutMs:10000});await document('cleanup_complete',doc.id,{path:doc.object_path},10000);}
@@ -208,6 +214,15 @@ export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
       if (['volume-audit','ticketlog','geo-analysis'].includes(route) && ['GET','POST'].includes(request.method)) {
         
         const body=request.method==='POST'?await readJson(request):{},current=await readState(),state=current.state||{};
+        const permission=route==='ticketlog'?'ticketlog_import':route==='geo-analysis'?'analysis_geo':'audit';
+        requirePermission(current.user,permission);
+        if(request.method==='POST'){
+          if(body.action==='reprocess-links')requirePermission(current.user,'analysis_geo','editar');
+          else if(route==='ticketlog')requirePermission(current.user,permission,body.action?.startsWith('delete-')?'excluir':'incluir');
+          else if(route==='volume-audit'&&body.action==='save')requireOwner(current.user);
+          else if(route==='volume-audit'&&['calculate','simulate','summary','history'].includes(body.action)){}
+          else requirePermission(current.user,permission,'editar');
+        }
         
         const persist=async(next,destructive=false)=>{
           delete next.audit;
@@ -218,7 +233,7 @@ export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
         };
         if(route==='geo-analysis'&&request.method==='GET')return reply({...readGeo(state,parsed),capabilities:{routing:false,geocoding:false}});
         if(route==='geo-analysis'&&body.action!=='reprocess-links')return reply(await reviewGeo({state,body,email:current.user.email,persist}));
-        if(route==='volume-audit')return reply(await handleVolume({state,body,method:request.method,email:current.user.email,persist}));
+        if(route==='volume-audit'){const result=await handleVolume({state,body,method:request.method,email:current.user.email,persist});if(request.method==='GET'){result.canConfigure=!!current.user.isOwner;result.canReview=current.user.isOwner||current.user.actions?.includes('*')||current.user.actions?.includes('audit:editar');}return reply(result);}
         if(request.method==='GET')return reply(readTicketlog(state,parsed.searchParams));
         return reply(await mutateTicketlog({state,body,email:current.user.email,persist}));
       }
@@ -226,6 +241,7 @@ export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
         const body = await readJson(request), current = await readState();
         if (!Array.isArray(body.measurementIds) || body.measurementIds.some(id=>typeof id!=='string')) throw problem('Seleção inválida.');
         if (body.version!==undefined && body.version!==current.version) throw problem('Os dados foram atualizados. Abra o relatório novamente.',409);
+        requirePermission(current.user,'medicoes','exportar');
         const result = accountingReport(current.state || {},body.measurementIds);
         await audit('Relatório de abastecimentos da contabilização','medicoes',{mode:body.mode,measurementIds:body.measurementIds,revision:current.version});
         return reply({...result,version:current.version});

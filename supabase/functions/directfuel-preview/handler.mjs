@@ -37,7 +37,11 @@ export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
         body: JSON.stringify({ p_user_id: user.id, p_email: user.email.toLowerCase() }),
         signal: AbortSignal.timeout(10000),
       });
-      if (!database.ok) return reply({ error: 'Não foi possível consultar o banco. Tente novamente.' }, 503);
+      if (!database.ok) {
+        const failure = await database.json();
+        if (failure.code === 'PT403') return reply({ error: 'Sua conta ainda não foi liberada para a cópia de testes.' }, 403);
+        return reply({ error: 'Não foi possível consultar o banco. Tente novamente.' }, 503);
+      }
       const status = await database.json();
       if (!status) return reply({ error: 'Sua conta ainda não foi liberada para a cópia de testes.' }, 403);
       return reply({ ...status, region: 'sa-east-1', applicationVersion: '231', checkedAt: new Date().toISOString() });
