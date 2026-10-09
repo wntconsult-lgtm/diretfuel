@@ -1,12 +1,12 @@
 import {active,list,clean,numeric,plate,isoDate,validCoordinates,filters,operationalMaps,alternatives,analyzeRows,directFuelRows,groupRows,filterByStationVolume,isOpportunityWithinRadius} from './core/directfuel-geo-core.mjs';
 const fail=(message,status=400)=>Object.assign(new Error(message),{status});
-export function readGeo(state,url){
+export function readGeo(state,url,routes=[]){
  const selected=filters(url);
  if(selected.from&&selected.to&&selected.from>selected.to)throw fail('A data inicial deve ser anterior à data final.');
  if(selected.maxLiters&&selected.minLiters>selected.maxLiters)throw fail('Volume mínimo deve ser menor que o máximo.');
  const ticket=state.ticketlogFuelings||[],stations=new Map((state.ticketlogStations||[]).map(s=>[s.source_code,s]));
  const fuelings={results:ticket.filter(r=>selected.origin!=='DirectFuel'&&(!selected.from||r.occurred_on>=selected.from)&&(!selected.to||r.occurred_on<=selected.to)&&(!selected.uf||r.uf===selected.uf)&&(!selected.products.length||selected.products.includes(r.product))&&(!selected.station||r.station_code===selected.station)).sort((a,b)=>String(b.occurred_on).localeCompare(String(a.occurred_on))||String(b.transaction_code).localeCompare(String(a.transaction_code))).slice(0,20000).map(r=>{const s=stations.get(r.station_code)||{};return {...r,cnpj:s.cnpj,address:s.address,latitude:s.latitude,longitude:s.longitude,geocode_status:s.geocode_status};})};
- const routeResult={results:[]}; // No road distance is inferred from straight-line distance.
+ const routeResult={results:routes}; // Only provider-validated road distances are used.
  const products={results:[...new Set(ticket.map(r=>r.product).filter(Boolean))].sort().map(product=>({product}))},ufs={results:[...new Set(ticket.map(r=>r.uf).filter(Boolean))].sort().map(uf=>({uf}))},stationMap=new Map();
  for(const r of ticket)if(!stationMap.has(r.station_code))stationMap.set(r.station_code,{station_code:r.station_code,station_name:r.station_name,city:r.city,uf:r.uf});
  const stationOptions={results:[...stationMap.values()].sort((a,b)=>String(a.station_name).localeCompare(String(b.station_name)))};

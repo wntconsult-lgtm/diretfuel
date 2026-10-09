@@ -77,3 +77,16 @@ Permissões e ações são lidas do cadastro atual a cada operação. O backend 
 Em **Documentos → Migrar PDFs e XMLs antigos → Conferir arquivos faltantes**, a lista mostra links de consulta no site original. Entre no original, salve os arquivos disponíveis e selecione-os na cópia para migrar, conferindo cada vínculo. Os links não contêm credenciais e não alteram o original. Arquivos indisponíveis no original exigem uma cópia local.
 
 62 testes automatizados passaram, incluindo sete cenários adicionais de acesso, preservação de coleções ocultas, bloqueio de operações, ativação individual e recuperação de senha. Um teste SQL transacional confirmou privilégios de RPC, Master preservado, perfil vindo do cadastro, bloqueio de usuários inativos, backups exclusivos e documentos privados. As alterações e todos os registros artificiais foram revertidos. Não foi criada nem alterada nenhuma conta em Auth para o teste. A validação completa com login real de um integrante ainda depende da liberação individual pelo proprietário.
+
+
+## Rotas e coordenadas por Geoapify
+
+Em Configurações → Mapas, rotas e coordenadas, o proprietário encontra as instruções para criar uma chave no Geoapify e cadastrar o segredo `GEOAPIFY_API_KEY` no Supabase. A chave fica somente no ambiente da função; o portal recebe apenas o estado de configuração. Sem a chave, consultas externas ficam desativadas. Não foi contratada uma assinatura nem criada uma conta no provedor.
+
+O cálculo usa distância rodoviária em quilômetros, não distância em linha reta. A linha reta apenas seleciona pares candidatos até o raio configurado, limitado a 100 km. A rota é estimativa para análise, sem validar restrições particulares de caminhões. A classificação detalhada de mesma rodovia/corredor continua indisponível. Leituras não consultam o provedor; os botões iniciam o processamento.
+
+O backend impõe 100 consultas externas por dia UTC, limite global de frequência e reserva para impedir consulta concorrente duplicada. Resultados de rotas ficam em cache por 30 dias e de endereços por 90 dias; o cache é privado, reconstruível e separado dos registros fiscais. Alterações nas coordenadas invalidam o reaproveitamento da rota. Falhas não produzem distância zero nem oportunidade fictícia. O limite local conta requisições, não créditos do provedor; confira também a cota no Geoapify.
+
+São enviados somente endereços e coordenadas. Placas, motoristas, abastecimentos e valores não acompanham as chamadas. Geocodificação automática exige localização precisa, confiança alta e cidade/UF compatíveis; pontos existentes são preservados. Resultados insuficientes ficam para revisão. O processamento DirectFuel limita cada etapa a 20 postos.
+
+Validação local: 73 testes automatizados, incluindo distância/unidades, cache, permissões, ausência de chamadas externas nas leituras, preservação de coordenadas e conflito de revisão. A validação real do provedor depende do cadastro da chave e de uma consulta autorizada.

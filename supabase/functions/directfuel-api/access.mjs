@@ -3,7 +3,7 @@ const fail=message=>Object.assign(new Error(message),{status:403});
 export const accessOf=user=>({isOwner:!!user?.isOwner,user:{email:user?.email},directFuelUser:{perfil:user?.profile,permissoes:user?.permissions||[],acoes:user?.actions||[]}});
 const dimensions=['distribuidores','bases','produtos','unidades','postos','frota','rede'];
 const operations=['acordos','abastecimentos','medicoes','nfPendencias','docs','accountingAdjustments','sapReturns','fiscalLayouts'];
-const groups={distribuidoras:['distribuidores'],bases:['bases'],produtos:['produtos'],unidades:['unidades'],postos:['postos','fiscalLayouts'],frota:['frota'],rede:['rede'],acordos:['acordos'],abastecimentos:['abastecimentos'],medicoes:operations,documentos:['docs','medicoes','nfPendencias','sapReturns','fiscalLayouts'],dashboard:operations,relatorios:operations,analysis_geo:['geoParams','stationReviews','acordos','abastecimentos','ticketlogStations','ticketlogFuelings'],ticketlog_import:['ticketlogStations','ticketlogFuelings','ticketlogBatches'],audit:['abastecimentos','medicoes','ticketlogStations','ticketlogFuelings','volumeParameters','volumeParameterHistory','volumeReviews','alertReviews']};
+const groups={distribuidoras:['distribuidores'],bases:['bases'],produtos:['produtos'],unidades:['unidades'],postos:['postos','fiscalLayouts'],frota:['frota'],rede:['rede'],acordos:['acordos'],abastecimentos:['abastecimentos'],medicoes:operations,documentos:['docs','medicoes','nfPendencias','sapReturns','fiscalLayouts'],dashboard:operations,relatorios:operations,analysis_geo:['geoParams','geoStations','stationReviews','acordos','abastecimentos','ticketlogStations','ticketlogFuelings'],ticketlog_import:['ticketlogStations','ticketlogFuelings','ticketlogBatches'],audit:['abastecimentos','medicoes','ticketlogStations','ticketlogFuelings','volumeParameters','volumeParameterHistory','volumeReviews','alertReviews']};
 export function visibleKeys(access){
  if(access.isOwner)return null;
  const keys=new Set(['config','users','audit']);
@@ -38,6 +38,6 @@ export function requirePermission(user,permission,action){
 }
 export function requireOwner(user){if(!user?.isOwner)throw fail('Somente o proprietário pode realizar esta operação.');}
 export function authorizeExtraChanges(access,changes){
- const map={geoParams:'analysis_geo',stationReviews:'analysis_geo',volumeParameters:'audit',volumeParameterHistory:'audit',volumeReviews:'audit',ticketlogStations:'ticketlog_import',ticketlogFuelings:'ticketlog_import',ticketlogBatches:'ticketlog_import'};
+ const map={geoParams:'analysis_geo',geoStations:'analysis_geo',stationReviews:'analysis_geo',volumeParameters:'audit',volumeParameterHistory:'audit',volumeReviews:'audit',ticketlogStations:'ticketlog_import',ticketlogFuelings:'ticketlog_import',ticketlogBatches:'ticketlog_import'};
  for(const change of changes){const permission=map[change.collection];if(!permission)continue;for(const [action,count] of [['incluir',change.inserted],['editar',change.updated],['excluir',change.deleted.length]])if(count&&!hasAction(access,permission,action))throw fail('Seu acesso não permite alterar esta coleção.');}
 }
