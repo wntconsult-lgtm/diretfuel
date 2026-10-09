@@ -1,5 +1,6 @@
 import { config } from './config.mjs';
 import { createAccess } from './auth.mjs';
+import { requestRecovery } from './recovery.mjs';
 import { createMigration, inspectBackup, MAX_BACKUP_BYTES } from './import.mjs';
 
 const $ = id => document.getElementById(id);
@@ -33,6 +34,11 @@ function updateImportButton() {
   $('import-backup').disabled=importBusy || $('backup-file').disabled || !selectedBackup || !$('backup-confirm').checked;
 }
 async function start() {
+  // Support the portal as a configured fallback redirect without consuming tokens.
+  const recoveryParams=new URLSearchParams(location.hash.slice(1));
+  if(recoveryParams.get('type')==='recovery'||recoveryParams.has('error_code')){
+    location.replace(new URL('./recover.html',location.href).href+location.hash);return;
+  }
   if (!window.supabase?.createClient) {
     showLogin('Não foi possível carregar o acesso. Recarregue a página.'); $('submit').disabled = true; return;
   }
@@ -40,6 +46,14 @@ async function start() {
     auth: { storage: sessionStorage, storageKey: 'directfuel-migration-auth', persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
   });
   access = createAccess(client, config.url, config.publicKey);
+  $('forgot-password').addEventListener('click',async()=>{
+    const email=$('email');
+    if(!email.reportValidity()){email.focus();return;}
+    $('forgot-password').disabled=true;$('recovery-message').textContent='Solicitando recuperação…';
+    try{$('recovery-message').textContent=await requestRecovery(client,email.value);}
+    catch(e){$('recovery-message').textContent=e.message;}
+    finally{$('forgot-password').disabled=false;}
+  });
   migration = createMigration(client, config.url, config.publicKey);
   $('backup-file').addEventListener('change',async()=>{
     selectedBackup=null; $('backup-confirm').checked=false; updateImportButton();

@@ -89,7 +89,7 @@ test('missing sessions never trigger a network request', async () => {
 test('the deploy artifact contains only the access page, never source, credentials or business data', async () => {
   const root = new URL('../dist/pages-preview/', import.meta.url);
   const files = await readdir(root);
-  assert.deepEqual(files.sort(), ['activate.html','activate.mjs','activation.mjs','app','auth.mjs','config.mjs','favicon.svg','gateway.mjs','import.mjs','index.html','logo-vixpar.png','preview.css','preview.js']);
+  assert.deepEqual(files.sort(), ['activate.html','activate.mjs','activation.mjs','app','auth.mjs','config.mjs','favicon.svg','gateway.mjs','import.mjs','index.html','logo-vixpar.png','preview.css','preview.js','recover.html','recover.mjs','recovery.mjs']);
   const config = await readFile(new URL('config.mjs', root), 'utf8');
   assert.match(config, /sb_publishable_/); assert.doesNotMatch(config, /sb_secret_|eyJ|service_role/);
   const html = await readFile(new URL('index.html', root), 'utf8');
@@ -99,4 +99,31 @@ test('the deploy artifact contains only the access page, never source, credentia
   }
   const js = await readFile(new URL('preview.js', root), 'utf8');
   assert.doesNotMatch(js, /innerHTML|localStorage|\.signUp\(/);
+});
+
+// Recovery must verify the email link, never reuse an existing logged-in session.
+const {requestRecovery,readRecovery,createRecovery,RECOVERY_URL}=await import('../migration/pages/recovery.mjs');
+test('recovery requests use the fixed destination and do not disclose account existence',async()=>{
+ let sent;const client={auth:{resetPasswordForEmail:async(...args)=>{sent=args;return {error:null};}}};
+ assert.match(await requestRecovery(client,' owner@example.test '),/Se o e-mail/);
+ assert.deepEqual(sent,['owner@example.test',{redirectTo:RECOVERY_URL}]);
+ await assert.rejects(requestRecovery(client,'invalid'),/válido/);
+ client.auth.resetPasswordForEmail=async()=>({error:{status:429,message:'internal'}});
+ await assert.rejects(requestRecovery(client,'owner@example.test'),/Aguarde/);
+ client.auth.resetPasswordForEmail=async()=>({error:{status:500,message:'secret'}});
+ await assert.rejects(requestRecovery(client,'owner@example.test'),e=>!e.message.includes('secret'));
+});
+test('recovery rejects missing, expired and non-recovery links',()=>{
+ for(const hash of ['', '#type=invite&access_token=a&refresh_token=b','#type=recovery&access_token=a','#error_code=otp_expired'])assert.throws(()=>readRecovery(hash));
+ assert.deepEqual(readRecovery('#type=recovery&access_token=a&refresh_token=b'),{access_token:'a',refresh_token:'b'});
+});
+test('recovery validates passwords and verifies link before password mutation',async()=>{
+ const calls=[];const client={auth:{setSession:async()=>{calls.push('verify');return {data:{session:{}},error:null};},updateUser:async()=>{calls.push('update');return {error:null};},signOut:async()=>{calls.push('logout');}}};
+ const recover=createRecovery(client,{access_token:'a',refresh_token:'b'});
+ await assert.rejects(recover('short','short'),/12/);assert.deepEqual(calls,[]);
+ await assert.rejects(recover('valid-password-123','different'),/iguais/);assert.deepEqual(calls,[]);
+ await recover('valid-password-123','valid-password-123');assert.deepEqual(calls,['verify','update','logout']);
+ await assert.rejects(recover('valid-password-123','valid-password-123'),/já foi alterada/);
+ client.auth.setSession=async()=>({error:{message:'expired'},data:{session:null}});
+ await assert.rejects(createRecovery(client,{})('valid-password-123','valid-password-123'),/expirou/);assert.equal(calls.filter(x=>x==='update').length,1);
 });
