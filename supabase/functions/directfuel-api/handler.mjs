@@ -1,4 +1,6 @@
 import {handleTeam} from './team.mjs';
+import {createGeoProvider} from './geo-provider.mjs';
+import {cachedRoutes,handleGeoProvider} from './geo-routing.mjs';
 import {accessOf,clientState,mergeClientPayload,requireOwner,requirePermission,authorizeExtraChanges} from './access.mjs';
 import {handleRetention} from './retention.mjs';
 import {handleCompleted,documentManifest} from './completed-documents.mjs';
@@ -14,7 +16,7 @@ import { accountingReport } from './core/directfuel-accounting-report.mjs';
 
 export function analyzeChanges(previous,next){
  const changes=analyzeBusinessChanges(previous,next);
- for(const collection of ['geoParams','stationReviews','volumeParameters','volumeParameterHistory','volumeReviews','ticketlogStations','ticketlogFuelings','ticketlogBatches']){
+ for(const collection of ['geoParams','geoStations','stationReviews','volumeParameters','volumeParameterHistory','volumeReviews','ticketlogStations','ticketlogFuelings','ticketlogBatches']){
   if(JSON.stringify(previous[collection])===JSON.stringify(next[collection]))continue;
   if(['geoParams','volumeParameters'].includes(collection)){changes.push({collection,inserted:previous[collection]?0:1,updated:previous[collection]?1:0,deleted:[]});continue;}
   const before=new Map((previous[collection]||[]).map(r=>[r.id||r.stationCode,r])),after=new Map((next[collection]||[]).map(r=>[r.id||r.stationCode,r]));
@@ -93,7 +95,7 @@ async function readJson(request) {
   }
   try { return JSON.parse(text + decoder.decode()); } catch { throw problem('JSON inválido.'); }
 }
-export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
+export function createHandler({ url, serviceKey, geoApiKey = '', fetchImpl = fetch }) {
   const origins = new Set(['https://wntconsult-lgtm.github.io','http://localhost:4173']);
   return async request => {
     const headers = new Headers({ 'content-type':'application/json; charset=utf-8', 'cache-control':'private, no-store', 'x-content-type-options':'nosniff', vary:'Origin' });
@@ -134,6 +136,11 @@ export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
       });
       const document = (action,id=null,metadata=null,timeoutMs=45000) => rpc('directfuel_document',{p_action:action,p_document_id:id,p_metadata:metadata},timeoutMs);
       if(route==='team')return reply(await handleTeam({method:request.method,body:request.method==='POST'?await readJson(request):{},rpc,fetchImpl,url,serviceKey}));
+      if(route==='geo-provider'&&request.method==='GET'){
+        const context=await document('context');requireOwner(context.user);
+        const provider=createGeoProvider({apiKey:geoApiKey,fetchImpl,cache:null});
+        return reply({configured:provider.configured,...await rpc('directfuel_geo_cache',{p_action:'usage'},10000)});
+      }
       if (route==='version' && request.method==='GET') { await document('context'); return reply({applicationVersion:APP_VERSION}); }
       if (route==='state' && request.method==='GET') {
         const known = parsed.searchParams.get('version');
@@ -231,8 +238,16 @@ export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
           const changes=analyzeChanges(state,next);
           return await write(current,next,changes,destructive);
         };
-        if(route==='geo-analysis'&&request.method==='GET')return reply({...readGeo(state,parsed),capabilities:{routing:false,geocoding:false}});
-        if(route==='geo-analysis'&&body.action!=='reprocess-links')return reply(await reviewGeo({state,body,email:current.user.email,persist}));
+        if(route==='geo-analysis'){
+          const cache=(action,options={})=>rpc('directfuel_geo_cache',{p_action:action,p_key:options.key??null,p_kind:options.kind??null,p_payload:options.payload??null,p_token:options.token??null},10000);
+          const provider=createGeoProvider({apiKey:geoApiKey,fetchImpl,cache});
+          if(request.method==='GET'){
+            const entries=provider.configured?await cache('list'):[],routes=await cachedRoutes(state,entries),access=accessOf(current.user);
+            return reply({...readGeo(state,parsed,routes),canManage:access.isOwner||access.directFuelUser.acoes.includes('*')||access.directFuelUser.acoes.includes('analysis_geo:editar'),capabilities:{routing:provider.configured,geocoding:provider.configured,sameRoad:false,provider:'Geoapify/OpenStreetMap',manualOnly:true},providerUsage:provider.configured?await cache('usage'):null});
+          }
+          if(['geocode','route-batch','geocode-ticketlog-station','geocode-ticketlog-batch'].includes(body.action))return reply(await handleGeoProvider({state,body,provider,entries:body.action==='route-batch'&&provider.configured?await cache('list'):[],cache,persist,email:current.user.email}));
+          if(body.action!=='reprocess-links')return reply(await reviewGeo({state,body,email:current.user.email,persist}));
+        }
         if(route==='volume-audit'){const result=await handleVolume({state,body,method:request.method,email:current.user.email,persist});if(request.method==='GET'){result.canConfigure=!!current.user.isOwner;result.canReview=current.user.isOwner||current.user.actions?.includes('*')||current.user.actions?.includes('audit:editar');}return reply(result);}
         if(request.method==='GET')return reply(readTicketlog(state,parsed.searchParams));
         return reply(await mutateTicketlog({state,body,email:current.user.email,persist}));

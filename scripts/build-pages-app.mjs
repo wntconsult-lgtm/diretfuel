@@ -27,13 +27,25 @@ for(const name of modules){
   text=text.replace('atendem à política salva. Economia estimada:',"atendem à política salva. ${preview.missingDocuments ? esc(preview.missingDocuments)+' referência(s) sem arquivo migrado serão preservadas. ' : ''}Economia estimada:");
  }
  if(name==='geo'){
-  text=text.replace('function scheduleAutomaticRoutes() {','function scheduleAutomaticRoutes() { if(!geo.data?.capabilities?.routing)return;');
-  for(const declaration of ['async function openSameRoadAnalysis(stationCode) {','async function geocodeForm() {','async function geocodeTicketlogStation(button) {','async function geocodeAllTicketlogStations() {','async function geocodeAllDirectFuelStations() {','async function calculateRoutes(retryErrors = false) {']){
-    text=text.replace(declaration,declaration+" return toast('Rotas e busca de coordenadas aguardam um provedor compatível. Informe latitude e longitude no cadastro ou na carga Ticketlog.');");
-  }
+  text=text.replace('function scheduleAutomaticRoutes() {','function scheduleAutomaticRoutes() { if(!geo.data?.capabilities?.routing)return; if(geo.data.capabilities.manualOnly)return;');
+  text=text.replace('geo.data = payload;','geo.data = payload; window.DIRECTFUEL_GEO_CAPABILITIES=payload.capabilities||{}; window.DIRECTFUEL_GEO_USAGE=payload.providerUsage;');
+  text=text.replace('async function openSameRoadAnalysis(stationCode) {',"async function openSameRoadAnalysis(stationCode) { return toast('A identificação detalhada da rodovia ainda está em adaptação. Use as distâncias rodoviárias e a revisão manual dos postos.');");
+  for(const declaration of ['async function geocodeForm() {','async function geocodeTicketlogStation(button) {','async function geocodeAllTicketlogStations() {','async function geocodeAllDirectFuelStations() {'])text=text.replace(declaration,declaration+" if(!geo.data?.capabilities?.geocoding||!geo.data.canManage)return toast('O proprietário precisa configurar a chave Geoapify e liberar a permissão de edição geográfica.');");
+  text=text.replace('async function calculateRoutes(retryErrors = false) {',"async function calculateRoutes(retryErrors = false) { if(!geo.data?.capabilities?.routing||!geo.data.canManage)return toast('O proprietário precisa configurar a chave Geoapify e liberar a permissão de edição geográfica.');");
+  text=text.replace('["Indicador", "Valor"],','["Indicador", "Valor"], ["Fonte de rotas e coordenadas", "Geoapify / OpenStreetMap — https://www.geoapify.com/ — https://www.openstreetmap.org/copyright"],');
+  // Bulk updates must not silently replace station coordinates with a city/street centroid.
+  const bulkStart=text.indexOf('  async function geocodeAllDirectFuelStations()'),bulkEnd=text.indexOf('  async function reprocessLinks()',bulkStart);
+  if(bulkStart<0||bulkEnd<0)throw Error('Geocodificação em massa desconhecida.');
+  let bulk=text.slice(bulkStart,bulkEnd);
+  bulk=bulk.replace('index < pending.length;','index < Math.min(pending.length,20);');
+  bulk=bulk.replace('if (!response.ok)\n            throw new Error(payload.error || "Falha na geocodificação");','if (!response.ok) { toast(payload.error || "Consulta interrompida"); break; }');
+  bulk=bulk.replace('if (result) {',"const normalized=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toUpperCase(); if (result && ['building','amenity'].includes(result.resultType) && result.confidence>=0.95 && normalized(result.city)===normalized(station.municipio) && normalized(result.stateCode)===normalized(station.uf)) {");
+  bulk=bulk.replaceAll('Geocodificação DirectFuel concluída','Etapa de geocodificação DirectFuel concluída (até 20 postos)');
+  text=text.slice(0,bulkStart)+bulk+text.slice(bulkEnd);
   text=text.replace('stationCode: code, mode, targetId, reason }','stationCode: code, mode, targetId, reason, reviewedAt: previous?.reviewedAt || null }');
-  text=text.replaceAll('As rotas rodoviárias são calculadas automaticamente.','As rotas automáticas aguardam um provedor compatível.');
-  text=text.replaceAll('Geocodificação: Nominatim/OpenStreetMap. Rotas automáticas: OSRM/OpenStreetMap.','Coordenadas: cadastro e cargas Ticketlog. Serviços automáticos aguardam configuração.');
+  text=text.replaceAll('As rotas rodoviárias são calculadas automaticamente.','Calcule as rotas pelo botão. Consultas externas têm limite diário e exigem a chave configurada pelo proprietário.');
+  text=text.replaceAll('Geocodificação: Nominatim/OpenStreetMap. Rotas automáticas: OSRM/OpenStreetMap.','Coordenadas e rotas: Geoapify/OpenStreetMap, mediante configuração. Distâncias são estimativas para análise, sem validar restrições específicas de cada veículo.');
+  text=text.replace("attribution: '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>'", "attribution: '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> | <a href=\"https://www.geoapify.com/\">Geoapify</a>'");
  }
  if(name==='online'){
   text=text.replace('if (window.directFuelNormalizeInvoiceState?.()) pending = true;','// Incoming snapshots are preserved; normalization is performed only on explicit edits.');
@@ -49,12 +61,13 @@ for(const name of modules){
 }
 await copyFile(new URL('migration/app/document-migration.js',root),new URL('directfuel-document-migration.js',output));
 await copyFile(new URL('migration/app/team-access.js',root),new URL('directfuel-team-access.js',output));
+await copyFile(new URL('migration/app/geo-setup.js',root),new URL('directfuel-geo-setup.js',output));
 await copyFile(new URL('migration/app/policy.js',root),new URL('directfuel-migration-policy.js',output));
 let bootstrap=await readFile(new URL('public/directfuel-bootstrap.js',root),'utf8');
 bootstrap=bootstrap.replace("https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js');
 const start=bootstrap.indexOf('    for(const name of [');const end=bootstrap.indexOf(') {',start);
 if(start<0||end<0)throw Error('Ordem dos módulos desconhecida.');
-bootstrap=bootstrap.slice(0,start)+`    for(const name of ${JSON.stringify([...modules,'document-migration','team-access','migration-policy'])}`+bootstrap.slice(end);
+bootstrap=bootstrap.slice(0,start)+`    for(const name of ${JSON.stringify([...modules,'document-migration','team-access','geo-setup','migration-policy'])}`+bootstrap.slice(end);
 bootstrap=bootstrap.replace("    await load('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js');","    try { await load('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js'); } catch { window.DIRECTFUEL_MAP_AVAILABLE=false; }");
 bootstrap=bootstrap.replace('`/directfuel-${name}', '`./directfuel-${name}');
 await writeFile(new URL('directfuel-bootstrap.js',output),bootstrap);

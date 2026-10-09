@@ -988,4 +988,4 @@ function analyzeRows(rawRows: AnyRow[], state: State, routeRows: AnyRow[]): AnyR
 }
 
 
-export {active,list,clean,numeric,plate,isoDate,validCoordinates,filters,operationalMaps,alternatives,analyzeRows,directFuelRows,groupRows,filterByStationVolume,isOpportunityWithinRadius};
+export {active,list,clean,numeric,plate,isoDate,validCoordinates,filters,operationalMaps,alternatives,analyzeRows,directFuelRows,groupRows,filterByStationVolume,isOpportunityWithinRadius,haversine,matchAlternativeProduct,resolveProductId,reviewedStationMatch};
