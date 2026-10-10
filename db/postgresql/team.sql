@@ -137,7 +137,8 @@ GRANT EXECUTE ON FUNCTION public.directfuel_document(uuid,text,text,text,jsonb) 
 -- A identidade vem de Auth /user, verificada pela Edge Function.
 -- SECURITY INVOKER: clientes não têm EXECUTE nem acesso ao schema privado.
 CREATE OR REPLACE FUNCTION public.directfuel_preview_access(p_user_id uuid, p_email text)
-RETURNS jsonb LANGUAGE sql STABLE SECURITY INVOKER SET search_path = '' AS $$
+-- VOLATILE is required: require_member takes FOR SHARE locks; PostgREST executes STABLE RPCs read-only.
+RETURNS jsonb LANGUAGE sql VOLATILE SECURITY INVOKER SET search_path = '' AS $$
   SELECT jsonb_build_object(
     'user', jsonb_build_object('email', m.email, 'name', m.display_name, 'profile', m.profile, 'isOwner',m.email='wnt.consult@gmail.com' AND m.profile='Master'),
     'revision', (SELECT revision FROM directfuel.state_revision WHERE id = 'main'),
