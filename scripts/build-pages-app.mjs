@@ -1,5 +1,6 @@
-import {readFile,writeFile,mkdir,copyFile} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,copyFile,readdir} from 'node:fs/promises';
 import vm from 'node:vm';
+import {createHash} from 'node:crypto';
 const root=new URL('../',import.meta.url), output=new URL('../dist/pages-preview/app/',import.meta.url);
 await mkdir(output,{recursive:true});
 const version=(await readFile(new URL('lib/directfuel-version.ts',root),'utf8')).match(/APP_VERSION\s*=\s*["']([^"']+)/)?.[1];
@@ -78,3 +79,26 @@ bootstrap=bootstrap.replace("    await load('https://cdn.jsdelivr.net/npm/leafle
 bootstrap=bootstrap.replace('`/directfuel-${name}', '`./directfuel-${name}');
 await writeFile(new URL('directfuel-bootstrap.js',output),bootstrap);
 console.log('Aplicação estática de testes gerada sem registros ou credenciais de serviço.');
+
+// A separate content revision refreshes static assets without changing the API version.
+const digest=createHash('sha256');
+for(const name of (await readdir(output)).sort()){
+ digest.update(name);digest.update(await readFile(new URL(name,output)));
+}
+const assetRevision=digest.digest('hex').slice(0,16);
+let entry=await readFile(new URL('index.html',output),'utf8');
+entry=entry.replace(/((?:src|href)="\.\/[^"?#]+\.(?:mjs|js|css))"/g,`$1?build=${assetRevision}"`);
+entry=entry.replace('Carregando a cópia de testes…',`Carregando a cópia de testes… · atualização ${assetRevision}`);
+await writeFile(new URL('index.html',output),entry);
+let starter=await readFile(new URL('app-start.mjs',output),'utf8');
+starter=starter.replace("'./directfuel-bootstrap.js'",`'./directfuel-bootstrap.js?build=${assetRevision}'`);
+starter=starter.replace(/from '(\.\/[^']+\.mjs)'/g,`from '$1?build=${assetRevision}'`);
+await writeFile(new URL('app-start.mjs',output),starter);
+let loader=await readFile(new URL('directfuel-bootstrap.js',output),'utf8');
+loader=loader.replace('encodeURIComponent(version)',`encodeURIComponent('${assetRevision}')`);
+await writeFile(new URL('directfuel-bootstrap.js',output),loader);
+const portalURL=new URL('../index.html',output);
+let portal=await readFile(portalURL,'utf8');
+portal=portal.replace('href="./app/"',`href="./app/?build=${assetRevision}"`);
+await writeFile(portalURL,portal);
+console.log(`Revisão dos arquivos estáticos: ${assetRevision}`);

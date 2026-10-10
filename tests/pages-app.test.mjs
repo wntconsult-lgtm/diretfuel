@@ -75,3 +75,16 @@ test('full initial synchronization with the real owner header reads once and nev
  vm.createContext(ctx);vm.runInContext(text,ctx);await ctx.window.directFuelStartSync();
  assert.equal(reads,1);assert.equal(writes,0);assert.deepEqual(ctx.db,state);assert.equal(ctx.window.DIRECTFUEL_CURRENT_EMAIL,'owner@example.test');
 });
+
+test('each entry point passes the content revision to the next loader and all app modules',async()=>{
+ const root=new URL('../dist/pages-preview/app/',import.meta.url);
+ const html=await readFile(new URL('index.html',root),'utf8');
+ const revision=html.match(/app-start\.mjs\?build=([a-f0-9]{16})/)[1];
+ const start=await readFile(new URL('app-start.mjs',root),'utf8');
+ assert.ok(start.includes(`directfuel-bootstrap.js?build=${revision}`));
+ const boot=await readFile(new URL('directfuel-bootstrap.js',root),'utf8');
+ assert.ok(boot.includes(`encodeURIComponent('${revision}')`));
+ assert.ok(!boot.includes('encodeURIComponent(version)'));
+ const portal=await readFile(new URL('../index.html',root),'utf8');
+ assert.ok(portal.includes(`./app/?build=${revision}`));
+});
