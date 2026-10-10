@@ -88,3 +88,15 @@ test('each entry point passes the content revision to the next loader and all ap
  const portal=await readFile(new URL('../index.html',root),'utf8');
  assert.ok(portal.includes(`./app/?build=${revision}`));
 });
+
+test('production review reports missing dependencies and never declares a cutover ready',async()=>{
+ const source=await readFile(new URL('../migration/app/production-readiness.js',import.meta.url),'utf8');
+ const ctx={window:{},render:()=>{}};vm.createContext(ctx);vm.runInContext(source,ctx);
+ const ok=value=>({status:'fulfilled',value});
+ let rows=ctx.window.directFuelProductionRows({documents:ok({files:[{present:true},{present:false}]}),team:ok({users:[{enabled:true,released:false}]}),security:ok({backups:[]}),geo:ok({configured:false})});
+ assert.equal(rows[0].status,'Pendente');assert.match(rows[0].detail,/1 de 2/);assert.equal(rows[1].status,'Pendente');assert.equal(rows[2].status,'Pendente');assert.equal(rows[3].status,'Pendente');
+ rows=ctx.window.directFuelProductionRows({});for(const row of rows.slice(0,4))assert.equal(row.status,'Não verificado');
+ rows=ctx.window.directFuelProductionRows({documents:ok({files:[]}),team:ok({users:[{enabled:true,released:true}]}),security:ok({backups:[{created_at:'2026-10-10T01:00:00Z'}]}),geo:ok({configured:true})});
+ assert.equal(rows[3].status,'Chave cadastrada');assert.match(rows[3].detail,/consulta real/);assert.equal(rows[4].status,'Conferência necessária');assert.equal(rows[5].status,'Conferência necessária');
+ assert.doesNotMatch(source,/method:[ ]*['"]POST|method:[ ]*['"]PUT/);
+});

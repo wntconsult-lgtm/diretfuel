@@ -69,12 +69,13 @@ for(const name of modules){
 await copyFile(new URL('migration/app/document-migration.js',root),new URL('directfuel-document-migration.js',output));
 await copyFile(new URL('migration/app/team-access.js',root),new URL('directfuel-team-access.js',output));
 await copyFile(new URL('migration/app/geo-setup.js',root),new URL('directfuel-geo-setup.js',output));
+await copyFile(new URL('migration/app/production-readiness.js',root),new URL('directfuel-production-readiness.js',output));
 await copyFile(new URL('migration/app/policy.js',root),new URL('directfuel-migration-policy.js',output));
 let bootstrap=await readFile(new URL('public/directfuel-bootstrap.js',root),'utf8');
 bootstrap=bootstrap.replace("https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js');
 const start=bootstrap.indexOf('    for(const name of [');const end=bootstrap.indexOf(') {',start);
 if(start<0||end<0)throw Error('Ordem dos módulos desconhecida.');
-bootstrap=bootstrap.slice(0,start)+`    for(const name of ${JSON.stringify([...modules,'document-migration','team-access','geo-setup','migration-policy'])}`+bootstrap.slice(end);
+bootstrap=bootstrap.slice(0,start)+`    for(const name of ${JSON.stringify([...modules,'document-migration','team-access','geo-setup','production-readiness','migration-policy'])}`+bootstrap.slice(end);
 bootstrap=bootstrap.replace("    await load('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js');","    try { await load('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js'); } catch { window.DIRECTFUEL_MAP_AVAILABLE=false; }");
 bootstrap=bootstrap.replace('`/directfuel-${name}', '`./directfuel-${name}');
 await writeFile(new URL('directfuel-bootstrap.js',output),bootstrap);
