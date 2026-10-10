@@ -28,6 +28,10 @@ for(const name of modules){
   text=text.replace('atendem à política salva. Economia estimada:',"atendem à política salva. ${preview.missingDocuments ? esc(preview.missingDocuments)+' referência(s) sem arquivo migrado serão preservadas. ' : ''}Economia estimada:");
  }
  if(name==='geo'){
+  // OSM requires a Referer; disclose only the origin for map images.
+  const tileStart='L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {';
+  if(!text.includes(tileStart))throw new Error('Map tile layer not found');
+  text=text.replace(tileStart,tileStart+'\n      referrerPolicy: "origin",');
   text=text.replace('function scheduleAutomaticRoutes() {','function scheduleAutomaticRoutes() { if(!geo.data?.capabilities?.routing)return; if(geo.data.capabilities.manualOnly)return;');
   text=text.replace('geo.data = payload;','geo.data = payload; window.DIRECTFUEL_GEO_CAPABILITIES=payload.capabilities||{}; window.DIRECTFUEL_GEO_USAGE=payload.providerUsage;');
   text=text.replace('async function openSameRoadAnalysis(stationCode) {',"async function openSameRoadAnalysis(stationCode) { return toast('A identificação detalhada da rodovia ainda está em adaptação. Use as distâncias rodoviárias e a revisão manual dos postos.');");
