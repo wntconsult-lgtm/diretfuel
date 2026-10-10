@@ -94,8 +94,8 @@ test('production review reports missing dependencies and never declares a cutove
  const ctx={window:{},render:()=>{}};vm.createContext(ctx);vm.runInContext(source,ctx);
  const ok=value=>({status:'fulfilled',value});
  let rows=ctx.window.directFuelProductionRows({documents:ok({files:[{present:true},{present:false}]}),team:ok({users:[{enabled:true,released:false}]}),security:ok({backups:[]}),geo:ok({configured:false})});
- assert.equal(rows[0].status,'Pendente');assert.match(rows[0].detail,/1 de 2/);assert.equal(rows[1].status,'Pendente');assert.equal(rows[2].status,'Pendente');assert.equal(rows[3].status,'Pendente');
- rows=ctx.window.directFuelProductionRows({});for(const row of rows.slice(0,4))assert.equal(row.status,'Não verificado');
+ assert.equal(rows[0].status,'Envio opcional');assert.match(rows[0].detail,/1 de 2/);assert.match(rows[0].detail,/não é requisito/);assert.equal(rows[1].status,'Pendente');assert.equal(rows[2].status,'Pendente');assert.equal(rows[3].status,'Pendente');
+ rows=ctx.window.directFuelProductionRows({});assert.match(rows[0].status,/envio opcional/);for(const row of rows.slice(1,4))assert.equal(row.status,'Não verificado');
  rows=ctx.window.directFuelProductionRows({documents:ok({files:[]}),team:ok({users:[{enabled:true,released:true}]}),security:ok({backups:[{created_at:'2026-10-10T01:00:00Z'}]}),geo:ok({configured:true})});
  assert.equal(rows[3].status,'Chave cadastrada');assert.match(rows[3].detail,/consulta real/);assert.equal(rows[4].status,'Conferência necessária');assert.equal(rows[5].status,'Conferência necessária');
  assert.doesNotMatch(source,/method:[ ]*['"]POST|method:[ ]*['"]PUT/);
