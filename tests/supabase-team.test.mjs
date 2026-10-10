@@ -50,7 +50,7 @@ test('team links require individual confirmation and current revision before gen
  await assert.rejects(()=>handleTeam({...args,body:{action:'activate',id:'member',version:2,confirmation:'LIBERAR ACESSO'}}),e=>e.status===409);assert.equal(calls.length,1);
  calls.length=0;
  const result=await handleTeam({...args,body:{action:'activate',id:'member',version:3,confirmation:'LIBERAR ACESSO',profile:'Master',permissions:['*']}});
- assert.equal(result.profile,'Usuário');assert.equal(new URL(result.link).pathname,'/diretfuel/activate.html');assert.deepEqual(calls[1],{type:'invite',email:member.email});assert.deepEqual(calls[2].p_metadata,{authUserId:'synthetic-auth-id',version:3});assert.doesNotMatch(JSON.stringify(result),/do-not-return|synthetic-secret/);
+ assert.equal(result.profile,'Usuário');assert.equal(new URL(result.link).origin,'https://directfuel.com.br');assert.equal(new URL(result.link).pathname,'/activate.html');assert.deepEqual(calls[1],{type:'invite',email:member.email});assert.deepEqual(calls[2].p_metadata,{authUserId:'synthetic-auth-id',version:3});assert.doesNotMatch(JSON.stringify(result),/do-not-return|synthetic-secret/);
 });
 test('an existing account receives a recovery link, and mismatched identities are never bound',async()=>{
  let bound=0,generated=[];

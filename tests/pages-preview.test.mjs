@@ -106,7 +106,7 @@ const {requestRecovery,readRecovery,createRecovery,RECOVERY_URL}=await import('.
 test('recovery requests use the fixed destination and do not disclose account existence',async()=>{
  let sent;const client={auth:{resetPasswordForEmail:async(...args)=>{sent=args;return {error:null};}}};
  assert.match(await requestRecovery(client,' owner@example.test '),/Se o e-mail/);
- assert.deepEqual(sent,['owner@example.test',{redirectTo:RECOVERY_URL}]);
+ assert.equal(RECOVERY_URL,'https://directfuel.com.br/recover.html');assert.deepEqual(sent,['owner@example.test',{redirectTo:RECOVERY_URL}]);
  await assert.rejects(requestRecovery(client,'invalid'),/válido/);
  client.auth.resetPasswordForEmail=async()=>({error:{status:429,message:'internal'}});
  await assert.rejects(requestRecovery(client,'owner@example.test'),/Aguarde/);

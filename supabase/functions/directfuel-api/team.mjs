@@ -17,7 +17,7 @@ export async function handleTeam({method,body,rpc,fetchImpl,url,serviceKey}){
  const actualType=result.data.verification_type||result.data.properties?.verification_type||type;
  if(!/^[a-f0-9]{32,128}$/i.test(token||'')||!['invite','recovery'].includes(actualType)||!user.id||String(user.email||'').toLowerCase()!==candidate.email)throw fail('Não foi possível validar o acesso gerado.',503);
  await rpc('directfuel_team',{p_action:'activate',p_id:body.id,p_metadata:{authUserId:user.id,version:candidate.version}});
- const link=`https://wntconsult-lgtm.github.io/diretfuel/activate.html#token_hash=${encodeURIComponent(token)}&type=${actualType}`;
+ const link=`https://directfuel.com.br/activate.html#token_hash=${encodeURIComponent(token)}&type=${actualType}`;
  // Link and OTP are never persisted, logged, emailed or included in business state.
  return {ok:true,email:candidate.email,profile:candidate.profile,link};
 }

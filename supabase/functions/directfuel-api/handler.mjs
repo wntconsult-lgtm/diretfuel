@@ -96,7 +96,7 @@ async function readJson(request) {
   try { return JSON.parse(text + decoder.decode()); } catch { throw problem('JSON inválido.'); }
 }
 export function createHandler({ url, serviceKey, geoApiKey = '', fetchImpl = fetch }) {
-  const origins = new Set(['https://wntconsult-lgtm.github.io','http://localhost:4173']);
+  const origins = new Set(['https://directfuel.com.br','https://www.directfuel.com.br','https://wntconsult-lgtm.github.io','http://localhost:4173']);
   return async request => {
     const headers = new Headers({ 'content-type':'application/json; charset=utf-8', 'cache-control':'private, no-store', 'x-content-type-options':'nosniff', vary:'Origin' });
     const reply = (data, status = 200) => new Response(JSON.stringify(data), { status, headers });

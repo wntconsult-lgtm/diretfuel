@@ -1,5 +1,5 @@
 import { validatePassword } from './activation.mjs';
-export const RECOVERY_URL='https://wntconsult-lgtm.github.io/diretfuel/recover.html';
+export const RECOVERY_URL='https://directfuel.com.br/recover.html';
 export async function requestRecovery(client,email){
  email=String(email||'').trim();
  if(email.length>254||!/^\S+@\S+\.\S+$/.test(email))throw Error('Informe um e-mail válido.');

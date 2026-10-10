@@ -1,6 +1,6 @@
 // No external packages. Authentication is checked online with Supabase Auth.
 export function createHandler({ url, serviceKey, fetchImpl = fetch }) {
-  const allowedOrigins = new Set(['https://wntconsult-lgtm.github.io', 'http://localhost:4173']);
+  const allowedOrigins = new Set(['https://directfuel.com.br','https://www.directfuel.com.br','https://wntconsult-lgtm.github.io', 'http://localhost:4173']);
   return async function handler(request) {
     const origin = request.headers.get('origin');
     const headers = new Headers({
