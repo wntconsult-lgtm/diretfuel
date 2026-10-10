@@ -48,6 +48,12 @@ for(const name of modules){
   text=text.replace("attribution: '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>'", "attribution: '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> | <a href=\"https://www.geoapify.com/\">Geoapify</a>'");
  }
  if(name==='online'){
+  // Header identity must never seed or save business users before the first snapshot.
+  const chipStart=text.indexOf('  function userChip('),chipEnd=text.indexOf('  async function readResponse(',chipStart);
+  const seedStart=text.indexOf('    db.users = db.users || [];',chipStart),seedEnd=text.indexOf('    if (!header',seedStart);
+  if(chipStart<0||seedStart<0||seedEnd<0||seedEnd>chipEnd)throw Error('Cabeçalho de identidade desconhecido.');
+  text=text.slice(0,seedStart)+text.slice(seedEnd);
+
   text=text.replace('if (window.directFuelNormalizeInvoiceState?.()) pending = true;','// Incoming snapshots are preserved; normalization is performed only on explicit edits.');
   // Do not auto-save account enrichment during the initial read of the imported snapshot.
   const end=text.indexOf('  async function flushDanfes('),start=text.indexOf('  async function pull(');

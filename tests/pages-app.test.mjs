@@ -61,3 +61,17 @@ test('opening the app preserves incoming snapshots and cannot automatically writ
  vm.createContext(ctx);vm.runInContext(pull,ctx);await ctx.pull(true);
  assert.equal(ctx.pending,false);assert.equal(writes,0);assert.deepEqual(ctx.db,state);assert.equal(ctx.remoteVersion,1);
 });
+
+test('full initial synchronization with the real owner header reads once and never writes',async()=>{
+ const text=await readFile(new URL('../dist/pages-preview/app/directfuel-online.js',import.meta.url),'utf8');
+ let writes=0,reads=0;const nodes=new Map();
+ const header={appendChild:el=>nodes.set(el.id,el)};
+ const state={users:[{id:'existing-owner',email:'owner@example.test',perfil:'Master'}],medicoes:[],abastecimentos:[],audit:[]};
+ const ctx={uid:()=> 'generated-user',db:{users:[]},seed:{users:[]},save:()=>{},config:()=>{},documentos:()=>{},reset:()=>{},render:()=>{},cacheState:()=>{},toast:()=>{},structuredClone,console,
+ window:{DIRECTFUEL_APP_VERSION:'231',addEventListener:()=>{}},
+ document:{querySelector:selector=>selector==='.header-actions'?header:null,getElementById:id=>nodes.get(id)||null,createElement:()=>({setAttribute:()=>{}}),addEventListener:()=>{}},
+ fetch:async(url,options)=>{if(options?.method&&options.method!=='GET'){writes++;throw Error('Unexpected startup write');}reads++;return Response.json({applicationVersion:'231',version:4,state:structuredClone(state),user:{email:'owner@example.test',isOwner:true,profile:'Master'},updatedAt:'2026-10-10T00:00:00Z'});},
+ setTimeout:()=>0,clearTimeout:()=>{},setInterval:()=>0};
+ vm.createContext(ctx);vm.runInContext(text,ctx);await ctx.window.directFuelStartSync();
+ assert.equal(reads,1);assert.equal(writes,0);assert.deepEqual(ctx.db,state);assert.equal(ctx.window.DIRECTFUEL_CURRENT_EMAIL,'owner@example.test');
+});
