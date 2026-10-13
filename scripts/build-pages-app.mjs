@@ -15,6 +15,14 @@ for(const name of ['logo-vixpar.png','favicon.svg','directfuel-styles.css','dire
 const modules=['state-delta','import-rules','app','online','enhancements','reports-calculator','rc-sap','enterprise','enterprise-v2','enterprise-v3','security','dashboard-financial','dashboard-v2','access-control','access-log','geo','danfe-parser','layout-engine','reconciliation','invoices','layouts','sap-return','sap-return-ui','accounting-report','ticketlog','volume','storage-ui','completed-documents'];
 for(const name of modules){
  let text=await readFile(new URL(`public/directfuel-${name}.js`,root),'utf8');
+ // The migrated app uses independent email/password accounts.
+ text=text.replaceAll('Cadastre exatamente o e-mail usado pela pessoa no ChatGPT. As permissões definem quais menus ficarão disponíveis.','Cadastre o e-mail da pessoa, sem necessidade de conta ChatGPT. Salve o cadastro e use Liberar e gerar link para ela definir sua senha. As permissões definem os menus disponíveis.')
+  .replaceAll('E-mail usado no ChatGPT','E-mail de acesso')
+  .replaceAll('E-mail ChatGPT','E-mail de acesso')
+  .replaceAll('O acesso ao site exige login no ChatGPT e e-mail corporativo @vix.com.br.','O acesso usa e-mail cadastrado e senha própria do DirectFuel, com liberação pelo proprietário.')
+  .replaceAll('Entre com a conta ChatGPT autorizada para este site.','Entre com o e-mail liberado e a senha do DirectFuel.')
+  .replaceAll('O acesso ao site exige uma conta ChatGPT autorizada.','O acesso exige um cadastro liberado no DirectFuel.')
+  .replaceAll('["id", "nome", "email_chatgpt",','["id", "nome", "email",');
  if(name==='app'){
   const from=text.indexOf('const seed='),to=text.indexOf('\nlet db=load();');
   if(from<0||to<0)throw Error('Não foi possível remover os dados de demonstração.');
