@@ -10,6 +10,13 @@ export function createGateway(client,config,fetchImpl=fetch,baseHref=location.hr
     headers.set('authorization',`Bearer ${data.session.access_token}`);headers.set('apikey',config.publicKey);
     // No session credentials are appended to URLs or sent to asset/CDN requests.
     const url=`${config.url}/functions/v1/directfuel-api/${target.pathname.slice(5)}${target.search}`;
-    return fetchImpl(new Request(url,original),{headers,cache:'no-store',credentials:'omit',redirect:'error'});
+    // Materialize the body: passing a Request as RequestInit can lose its body
+    // in browsers and turn writes into empty requests at the API gateway.
+    const body=original.body===null?undefined:await original.blob();
+    const forwarded=new Request(url,{
+      method:original.method,headers,body,signal:original.signal,
+      cache:'no-store',credentials:'omit',redirect:'error',
+    });
+    return fetchImpl(forwarded,{headers,cache:'no-store',credentials:'omit',redirect:'error'});
   };
 }
