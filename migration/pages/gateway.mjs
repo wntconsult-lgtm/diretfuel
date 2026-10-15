@@ -12,9 +12,10 @@ export function createGateway(client,config,fetchImpl=fetch,baseHref=location.hr
     const url=`${config.url}/functions/v1/directfuel-api/${target.pathname.slice(5)}${target.search}`;
     // Materialize the body: passing a Request as RequestInit can lose its body
     // in browsers and turn writes into empty requests at the API gateway.
-    const body=original.body===null?undefined:await original.blob();
+    const canHaveBody=!['GET','HEAD'].includes(original.method.toUpperCase());
+    const body=canHaveBody?await original.blob():undefined;
     const forwarded=new Request(url,{
-      method:original.method,headers,body,signal:original.signal,
+      method:original.method,headers,...(canHaveBody?{body}:{}),signal:original.signal,
       cache:'no-store',credentials:'omit',redirect:'error',
     });
     return fetchImpl(forwarded,{headers,cache:'no-store',credentials:'omit',redirect:'error'});
